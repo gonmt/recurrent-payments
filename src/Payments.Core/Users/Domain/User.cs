@@ -5,39 +5,50 @@ namespace Payments.Core.Users.Domain;
 
 public class User
 {
-    public readonly Uuid Id;
-    public readonly EmailAddress Email;
-    public UserFullName FullName { get; private set; }
-    private UserPasswordHash _passwordHash;
-    public readonly DateTimeOffset CreatedAt;
+    public Uuid Id { get; private set; } = null!;
+    public EmailAddress Email { get; private set; } = null!;
+    public UserFullName FullName { get; private set; } = null!;
+    public UserPasswordHash PasswordHash { get; private set; } = null!;
+    public DateTimeOffset CreatedAt { get; private set; }
+
+    private User()
+    {
+        // Required by EF Core
+    }
 
     private User(Uuid id, EmailAddress email, UserFullName fullName, UserPasswordHash passwordHash, DateTimeOffset createdAt)
     {
         Id = id;
         Email = email;
         FullName = fullName;
-        _passwordHash = passwordHash;
+        PasswordHash = passwordHash;
         CreatedAt = createdAt;
     }
-    
+
     public static User Create(Uuid id, EmailAddress email, UserFullName fullName, UserPasswordHash password)
     {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(fullName);
+        ArgumentNullException.ThrowIfNull(password);
+
         return new User(
             id,
             email,
             fullName,
-            password, 
+            password,
             DateTimeOffset.UtcNow
-            );
+        );
     }
 
     public void ChangePassword(UserPasswordHash newPassword)
     {
-        _passwordHash = newPassword;
+        ArgumentNullException.ThrowIfNull(newPassword);
+        PasswordHash = newPassword;
     }
 
     public bool VerifyPassword(string plainPassword, IHasher hasher)
     {
-        return _passwordHash.Verify(plainPassword, hasher);
+        return PasswordHash.Verify(plainPassword, hasher);
     }
 }

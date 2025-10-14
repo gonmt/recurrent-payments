@@ -12,6 +12,6 @@ public sealed class GetUserHandler(IUserRepository userRepository) : IHandler
         
         var user = await userRepository.Find(userId);
 
-        return user == null ? null : new GetUserResponse(user.Id, user.Email, user.FullName);
+        return user == null ? null : new GetUserResponse(user.Id, user.Email, user.FullName, user.CreatedAt.ToLocalTime().ToString());
     }
 }

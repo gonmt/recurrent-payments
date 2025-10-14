@@ -11,10 +11,10 @@ public class InMemoryUserRepository : IUserRepository
 
     public InMemoryUserRepository(IHasher hasher)
     {
-        var password = UserPasswordHash.Create("Mono8210!", hasher);
-        var id = Uuid.From("0199db05-c460-72ce-891d-5892875f9663");
-        var email = new EmailAddress("gon@gmail.com");
-        var name = new UserFullName("Gonzalo Torres");
+        var password = UserPasswordHash.Create(UsersSeedData.Password, hasher);
+        var id = Uuid.From(UsersSeedData.UserId);
+        var email = new EmailAddress(UsersSeedData.Email);
+        var name = new UserFullName(UsersSeedData.FullName);
         
         var user = User.Create(id, email, name, password);
         

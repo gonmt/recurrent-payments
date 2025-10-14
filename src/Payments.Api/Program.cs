@@ -1,8 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using Payments.Api.Extensions;
 using Payments.Core.Shared.Domain;
 using Payments.Core.Shared.Infrastructure;
-using Payments.Core.Users.Infrastructure;
 using Payments.Core.Users.Domain;
+using Payments.Core.Users.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +12,8 @@ builder.Services.AddOpenApi();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.IncludeFields = true);
 
 builder.Services.AddScoped<IHasher, BCryptHasher>();
-builder.Services.AddScoped<IUserRepository, InMemoryUserRepository>();
+builder.Services.AddDbContext<UsersDbContext>(options => options.UseInMemoryDatabase("PaymentsUsers"));
+builder.Services.AddScoped<IUserRepository, EfUserRepository>();
 
 builder.Services.AddPaymentsCore();
 builder.Services.RegisterApiEndpoints();
@@ -24,6 +26,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapApiEndpoints();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<UsersDbContext>();
+    var hasher = services.GetRequiredService<IHasher>();
+    UsersDbContextSeeder.Seed(context, hasher);
+}
 
 app.Run();
 

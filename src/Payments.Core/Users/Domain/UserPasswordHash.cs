@@ -42,6 +42,11 @@ public sealed record UserPasswordHash : StringValueObject
         return new UserPasswordHash(hashedPassword);
     }
 
+    internal static UserPasswordHash FromHash(string hashedPassword)
+    {
+        return new UserPasswordHash(hashedPassword);
+    }
+
     public bool Verify(string plainPassword, IHasher hasher)
     {
         return hasher.Verify(plainPassword, Value);
