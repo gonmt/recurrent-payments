@@ -1,20 +1,19 @@
 using Microsoft.AspNetCore.Mvc;
+
 using Payments.Api.Responses;
 using Payments.Core.Users.Application;
 
-namespace Payments.Api.Endpoints.Users;
-
-public class GetUserEndpoint : IApiEndpoint
+namespace Payments.Api.Endpoints.Users
 {
-    public void MapEndpoint(WebApplication app)
+    public class GetUserEndpoint : IApiEndpoint
     {
-        app.MapGet($"/users/{{id}}", Handle);
-    }
+        public void MapEndpoint(WebApplication app) => _ = app.MapGet($"/users/{{id}}", Handle);
 
-    private static async Task<IResult> Handle([FromRoute] string id, HttpContext ctx, GetUserHandler getUserHandler)
-    {
-        var user = await getUserHandler.Find(id);
+        private static async Task<IResult> Handle([FromRoute] string id, HttpContext ctx, GetUserHandler getUserHandler)
+        {
+            GetUserResponse? user = await getUserHandler.Find(id);
 
-        return ApiResponses.OkResponse(ctx, user);
+            return ApiResponses.OkResponse(ctx, user);
+        }
     }
 }

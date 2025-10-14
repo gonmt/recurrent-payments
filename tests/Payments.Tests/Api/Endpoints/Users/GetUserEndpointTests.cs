@@ -1,6 +1,8 @@
 using System;
 using System.Net.Http.Json;
+
 using Microsoft.AspNetCore.Mvc.Testing;
+
 using Payments.Core.Users.Application;
 
 namespace Payments.Tests.Api.Endpoints.Users;

@@ -1,37 +1,35 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
+
 using Payments.Api.Endpoints;
 
-namespace Payments.Api.Extensions;
-
-using Microsoft.AspNetCore.Builder;
-
-public static class MapEndpointExtensions
+namespace Payments.Api.Extensions
 {
-    public static IServiceCollection RegisterApiEndpoints(this IServiceCollection services)
+    public static class MapEndpointExtensions
     {
-        var assembly = typeof(MapEndpointExtensions).Assembly;
-        
-        var endpointTypes = assembly.GetTypes()
-            .Where(t => t.IsAssignableTo(typeof(IApiEndpoint)) && t is { IsClass: true, IsAbstract: false, IsInterface: false });
-        
-        var serviceDescriptors = endpointTypes
-            .Select(type => ServiceDescriptor.Transient(typeof(IApiEndpoint), type))
-            .ToArray();
-
-        services.TryAddEnumerable(serviceDescriptors);
-
-        return services;
-    }
-    
-    public static WebApplication MapApiEndpoints(this WebApplication app)
-    {
-        var endpoints = app.Services.GetRequiredService<IEnumerable<IApiEndpoint>>();
-        
-        foreach (var endpoint in endpoints)
+        public static IServiceCollection RegisterApiEndpoints(this IServiceCollection services)
         {
-            endpoint.MapEndpoint(app);
+            System.Reflection.Assembly assembly = typeof(MapEndpointExtensions).Assembly;
+
+            IEnumerable<Type> endpointTypes = assembly.GetTypes()
+                .Where(t => t.IsAssignableTo(typeof(IApiEndpoint)) && t is { IsClass: true, IsAbstract: false, IsInterface: false });
+
+            ServiceDescriptor[] serviceDescriptors = [.. endpointTypes.Select(type => ServiceDescriptor.Transient(typeof(IApiEndpoint), type))];
+
+            services.TryAddEnumerable(serviceDescriptors);
+
+            return services;
         }
 
-        return app;
+        public static WebApplication MapApiEndpoints(this WebApplication app)
+        {
+            IEnumerable<IApiEndpoint> endpoints = app.Services.GetRequiredService<IEnumerable<IApiEndpoint>>();
+
+            foreach (IApiEndpoint endpoint in endpoints)
+            {
+                endpoint.MapEndpoint(app);
+            }
+
+            return app;
+        }
     }
 }

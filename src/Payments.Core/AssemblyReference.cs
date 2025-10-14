@@ -1,8 +1,9 @@
-namespace Payments.Core;
-
 using System.Reflection;
 
-public static class AssemblyReference
+namespace Payments.Core
 {
-    public static readonly Assembly Assembly = typeof(AssemblyReference).Assembly;
+    public static class AssemblyReference
+    {
+        public static readonly Assembly Assembly = typeof(AssemblyReference).Assembly;
+    }
 }

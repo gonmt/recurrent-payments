@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+
 using Payments.Core.Shared.Domain;
 
 namespace Payments.Tests.Shared.Domain;

@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+
 using NetArchTest.Rules;
 
 namespace Payments.Tests.Core;
@@ -107,7 +108,7 @@ public class CoreArchitectureTests
         }
     }
 
-    private static IReadOnlyCollection<string> GetModuleNames()
+    private static string[] GetModuleNames()
     {
         return CoreAssembly
             .GetTypes()
@@ -120,7 +121,7 @@ public class CoreArchitectureTests
             .ToArray();
     }
 
-    private static IReadOnlyCollection<string> GetModuleRootNamespaces()
+    private static string[] GetModuleRootNamespaces()
     {
         return GetModuleNames()
             .Select(name => $"{CoreNamespace}.{name}")

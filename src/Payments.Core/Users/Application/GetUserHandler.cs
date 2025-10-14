@@ -2,16 +2,17 @@ using Payments.Core.Shared.Domain;
 using Payments.Core.Shared.Domain.ValueObjects;
 using Payments.Core.Users.Domain;
 
-namespace Payments.Core.Users.Application;
-
-public sealed class GetUserHandler(IUserRepository userRepository) : IHandler
+namespace Payments.Core.Users.Application
 {
-    public async Task<GetUserResponse?> Find(string id)
+    public sealed class GetUserHandler(IUserRepository userRepository) : IHandler
     {
-        var userId = Uuid.From(id);
-        
-        var user = await userRepository.Find(userId);
+        public async Task<GetUserResponse?> Find(string id)
+        {
+            var userId = Uuid.From(id);
 
-        return user == null ? null : new GetUserResponse(user.Id, user.Email, user.FullName, user.CreatedAt.ToLocalTime().ToString());
+            User? user = await userRepository.Find(userId);
+
+            return user == null ? null : new GetUserResponse(user.Id, user.Email, user.FullName, user.CreatedAt.ToLocalTime().ToString());
+        }
     }
 }

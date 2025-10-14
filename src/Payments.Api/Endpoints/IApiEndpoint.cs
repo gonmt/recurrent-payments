@@ -1,6 +1,7 @@
-namespace Payments.Api.Endpoints;
-
-public interface IApiEndpoint
+namespace Payments.Api.Endpoints
 {
-    void MapEndpoint(WebApplication app);
+    public interface IApiEndpoint
+    {
+        void MapEndpoint(WebApplication app);
+    }
 }

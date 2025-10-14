@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+
 using Payments.Api.Extensions;
 using Payments.Core.Shared.Domain;
 using Payments.Core.Shared.Infrastructure;
 using Payments.Core.Users.Domain;
 using Payments.Core.Users.Infrastructure;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 
@@ -18,20 +19,20 @@ builder.Services.AddScoped<IUserRepository, EfUserRepository>();
 builder.Services.AddPaymentsCore();
 builder.Services.RegisterApiEndpoints();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    _ = app.MapOpenApi();
 }
 
 app.MapApiEndpoints();
 
-using (var scope = app.Services.CreateScope())
+using (IServiceScope scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<UsersDbContext>();
-    var hasher = services.GetRequiredService<IHasher>();
+    IServiceProvider services = scope.ServiceProvider;
+    UsersDbContext context = services.GetRequiredService<UsersDbContext>();
+    IHasher hasher = services.GetRequiredService<IHasher>();
     UsersDbContextSeeder.Seed(context, hasher);
 }
 

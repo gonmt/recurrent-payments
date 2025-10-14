@@ -1,7 +1,8 @@
-namespace Payments.Core.Shared.Domain;
-
-public interface IHasher
+namespace Payments.Core.Shared.Domain
 {
-    string Hash(string plainText);
-    bool Verify(string plainText, string textHash);
+    public interface IHasher
+    {
+        string Hash(string plainText);
+        bool Verify(string plainText, string textHash);
+    }
 }
