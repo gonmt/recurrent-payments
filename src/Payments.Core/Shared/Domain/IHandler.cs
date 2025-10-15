@@ -1,7 +1,6 @@
-namespace Payments.Core.Shared.Domain
-{
-    public interface IHandler
-    {
+namespace Payments.Core.Shared.Domain;
 
-    }
+public interface IHandler
+{
+
 }

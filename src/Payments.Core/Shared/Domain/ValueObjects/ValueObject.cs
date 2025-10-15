@@ -1,7 +1,6 @@
-namespace Payments.Core.Shared.Domain.ValueObjects
+namespace Payments.Core.Shared.Domain.ValueObjects;
+
+public interface IValueObject<out TPrimitive>
 {
-    public interface IValueObject<out TPrimitive>
-    {
-        TPrimitive Value { get; }
-    }
+    TPrimitive Value { get; }
 }

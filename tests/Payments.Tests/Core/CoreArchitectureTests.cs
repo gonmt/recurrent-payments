@@ -8,7 +8,7 @@ namespace Payments.Tests.Core;
 public class CoreArchitectureTests
 {
     private const string CoreNamespace = "Payments.Core";
-    private static readonly Assembly CoreAssembly = typeof(Payments.Core.AssemblyReference).Assembly;
+    private static readonly Assembly _coreAssembly = typeof(Payments.Core.AssemblyReference).Assembly;
 
     [Fact]
     public void Modules_should_only_depend_on_themselves_or_shared()
@@ -26,7 +26,7 @@ public class CoreArchitectureTests
                 continue;
             }
 
-            var result = Types.InAssembly(CoreAssembly)
+            var result = Types.InAssembly(_coreAssembly)
                 .That()
                 .ResideInNamespaceStartingWith(moduleRoot)
                 .Should()
@@ -49,7 +49,7 @@ public class CoreArchitectureTests
                 continue;
             }
 
-            var result = Types.InAssembly(CoreAssembly)
+            var result = Types.InAssembly(_coreAssembly)
                 .That()
                 .ResideInNamespaceStartingWith(domainNamespace)
                 .Should()
@@ -72,7 +72,7 @@ public class CoreArchitectureTests
                 continue;
             }
 
-            var result = Types.InAssembly(CoreAssembly)
+            var result = Types.InAssembly(_coreAssembly)
                 .That()
                 .ResideInNamespaceStartingWith(applicationNamespace)
                 .Should()
@@ -97,7 +97,7 @@ public class CoreArchitectureTests
                 continue;
             }
 
-            var result = Types.InAssembly(CoreAssembly)
+            var result = Types.InAssembly(_coreAssembly)
                 .That()
                 .ResideInNamespaceStartingWith(layerNamespace)
                 .Should()
@@ -110,7 +110,7 @@ public class CoreArchitectureTests
 
     private static string[] GetModuleNames()
     {
-        return CoreAssembly
+        return _coreAssembly
             .GetTypes()
             .Select(type => type.Namespace)
             .Where(ns => ns is not null && ns.StartsWith($"{CoreNamespace}.", StringComparison.Ordinal))
@@ -130,7 +130,7 @@ public class CoreArchitectureTests
 
     private static bool HasTypesInNamespace(string namespacePrefix)
     {
-        return CoreAssembly
+        return _coreAssembly
             .GetTypes()
             .Any(type => type.Namespace is not null && type.Namespace.StartsWith(namespacePrefix, StringComparison.Ordinal));
     }

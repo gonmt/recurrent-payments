@@ -1,25 +1,24 @@
-namespace Payments.Core.Shared.Domain.ValueObjects
+namespace Payments.Core.Shared.Domain.ValueObjects;
+
+public abstract record class StringValueObject
 {
-    public abstract record class StringValueObject
+    public string Value { get; }
+
+    protected StringValueObject(string value)
     {
-        public string Value { get; }
+        Value = Normalize(value);
+        Validate(Value);
+    }
 
-        protected StringValueObject(string value)
-        {
-            Value = Normalize(value);
-            Validate(Value);
-        }
+    protected virtual string Normalize(string v)
+        => v?.Trim() ?? throw new ArgumentNullException(nameof(v));
 
-        protected virtual string Normalize(string v)
-            => v?.Trim() ?? throw new ArgumentNullException(nameof(v));
+    protected virtual void Validate(string v) { }
 
-        protected virtual void Validate(string v) { }
+    public override string ToString() => Value;
 
-        public override string ToString() => Value;
-
-        public static implicit operator string(StringValueObject vo)
-        {
-            return vo.Value;
-        }
+    public static implicit operator string(StringValueObject vo)
+    {
+        return vo.Value;
     }
 }
