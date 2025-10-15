@@ -6,11 +6,11 @@ public sealed partial record EmailAddress : StringValueObject
 {
     public EmailAddress(string value) : base(value) { }
 
-    protected override void Validate(string emailAddress)
+    protected override void Validate(string v)
     {
-        if (!MyRegex().IsMatch(emailAddress))
+        if (!MyRegex().IsMatch(v))
         {
-            throw new ArgumentException("Invalid email address.", nameof(emailAddress));
+            throw new ArgumentException("Invalid email address.", nameof(v));
         }
     }
 

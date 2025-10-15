@@ -6,7 +6,7 @@ namespace Payments.Tests.Users.Domain;
 public class UserPasswordHashTests
 {
     [Fact]
-    public void Create_WithValidPassword_ShouldReturnHash()
+    public void CreateWithValidPasswordShouldReturnHash()
     {
         var hasher = new FakeHasher();
 
@@ -18,7 +18,7 @@ public class UserPasswordHashTests
     [Theory]
     [InlineData("Short1!")]
     [InlineData("TooLongPass12!")]
-    public void Create_WithInvalidLength_ShouldThrowArgumentOutOfRange(string plainPassword)
+    public void CreateWithInvalidLengthShouldThrowArgumentOutOfRange(string plainPassword)
     {
         var hasher = new FakeHasher();
 
@@ -30,7 +30,7 @@ public class UserPasswordHashTests
     [InlineData("NOLOWER1!")]
     [InlineData("NoDigits!!")]
     [InlineData("NoSymbol1")]
-    public void Create_WithMissingCharacterRequirement_ShouldThrowArgumentException(string plainPassword)
+    public void CreateWithMissingCharacterRequirementShouldThrowArgumentException(string plainPassword)
     {
         var hasher = new FakeHasher();
 
@@ -38,7 +38,7 @@ public class UserPasswordHashTests
     }
 
     [Fact]
-    public void Create_ShouldAllowPasswordsTrimmedForValidation()
+    public void CreateShouldAllowPasswordsTrimmedForValidation()
     {
         var hasher = new FakeHasher();
 
@@ -49,7 +49,7 @@ public class UserPasswordHashTests
     }
 
     [Fact]
-    public void Verify_ShouldReturnHasherResult()
+    public void VerifyShouldReturnHasherResult()
     {
         var hasher = new FakeHasher();
         var passwordHash = UserPasswordHash.Create("Valid12!", hasher);
@@ -61,7 +61,7 @@ public class UserPasswordHashTests
     }
 
     [Fact]
-    public void Verify_WhenHasherReturnsFalse_ShouldReturnFalse()
+    public void VerifyWhenHasherReturnsFalseShouldReturnFalse()
     {
         var hasher = new FakeHasher(verifyFunc: (_, _) => false);
         var passwordHash = UserPasswordHash.Create("Valid12!", hasher);
@@ -70,7 +70,7 @@ public class UserPasswordHashTests
     }
 
     [Fact]
-    public void ToString_ShouldMaskActualValue()
+    public void ToStringShouldMaskActualValue()
     {
         var hasher = new FakeHasher();
         var passwordHash = UserPasswordHash.Create("Valid12!", hasher);

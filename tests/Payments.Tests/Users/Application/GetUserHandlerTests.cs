@@ -8,7 +8,7 @@ namespace Payments.Tests.Users.Application;
 public class GetUserHandlerTests
 {
     [Fact]
-    public async Task Find_WhenUserExists_ShouldReturnResponse()
+    public async Task FindWhenUserExistsShouldReturnResponse()
     {
         var repository = new FakeUserRepository();
         var user = CreateUser();
@@ -25,7 +25,7 @@ public class GetUserHandlerTests
     }
 
     [Fact]
-    public async Task Find_WhenUserDoesNotExist_ShouldReturnNull()
+    public async Task FindWhenUserDoesNotExistShouldReturnNull()
     {
         var repository = new FakeUserRepository();
         var handler = new GetUserHandler(repository);

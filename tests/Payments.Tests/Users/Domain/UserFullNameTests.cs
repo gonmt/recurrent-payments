@@ -5,7 +5,7 @@ namespace Payments.Tests.Users.Domain;
 public class UserFullNameTests
 {
     [Fact]
-    public void Constructor_ShouldTrimValue()
+    public void ConstructorShouldTrimValue()
     {
         var fullName = new UserFullName("   Jane Doe   ");
 
@@ -14,13 +14,13 @@ public class UserFullNameTests
 
     [Theory]
     [InlineData("Jo")]
-    public void Constructor_WithTooShortValue_ShouldThrow(string input)
+    public void ConstructorWithTooShortValueShouldThrow(string input)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new UserFullName(input));
     }
 
     [Fact]
-    public void Constructor_WithTooLongValue_ShouldThrow()
+    public void ConstructorWithTooLongValueShouldThrow()
     {
         var input = new string('a', 101);
 

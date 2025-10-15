@@ -8,13 +8,13 @@ public class BCryptHasher : IHasher
 {
     private const int WorkFactor = 12;
 
-    public string Hash(string plainPassword) => BCrypt.HashPassword(plainPassword, WorkFactor);
+    public string Hash(string plainText) => BCrypt.HashPassword(plainText, WorkFactor);
 
-    public bool Verify(string plainPassword, string hashedPassword)
+    public bool Verify(string plainText, string textHash)
     {
         try
         {
-            return BCrypt.Verify(plainPassword, hashedPassword);
+            return BCrypt.Verify(plainText, textHash);
         }
         catch
         {

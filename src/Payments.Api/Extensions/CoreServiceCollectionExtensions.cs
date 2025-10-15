@@ -30,5 +30,8 @@ public static class CoreServiceCollectionExtensions
 
     private static bool ImplementsIHandler(Type t) => typeof(IHandler).IsAssignableFrom(t);
 
-    private static bool IsInCoreApplicationNamespace(string ns) => ns.StartsWith("Payments.Core.") && (ns.EndsWith(".Application") || ns.Contains(".Application."));
+    private static bool IsInCoreApplicationNamespace(string ns) =>
+        ns.StartsWith("Payments.Core.", StringComparison.Ordinal) &&
+        (ns.EndsWith(".Application", StringComparison.Ordinal) ||
+         ns.Contains(".Application.", StringComparison.Ordinal));
 }

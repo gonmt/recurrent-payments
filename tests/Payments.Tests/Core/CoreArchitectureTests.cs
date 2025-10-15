@@ -11,7 +11,7 @@ public class CoreArchitectureTests
     private static readonly Assembly _coreAssembly = typeof(Payments.Core.AssemblyReference).Assembly;
 
     [Fact]
-    public void Modules_should_only_depend_on_themselves_or_shared()
+    public void ModulesShouldOnlyDependOnThemselvesOrShared()
     {
         var moduleRoots = GetModuleRootNamespaces();
 
@@ -38,7 +38,7 @@ public class CoreArchitectureTests
     }
 
     [Fact]
-    public void Domain_layers_should_not_depend_on_application_or_infrastructure()
+    public void DomainLayersShouldNotDependOnApplicationOrInfrastructure()
     {
         foreach (var module in GetModuleNames())
         {
@@ -61,7 +61,7 @@ public class CoreArchitectureTests
     }
 
     [Fact]
-    public void Application_layers_should_not_depend_on_infrastructure()
+    public void ApplicationLayersShouldNotDependOnInfrastructure()
     {
         foreach (var module in GetModuleNames())
         {
@@ -86,7 +86,7 @@ public class CoreArchitectureTests
     [Theory]
     [InlineData("Domain")]
     [InlineData("Application")]
-    public void Core_layers_should_only_depend_on_bcl_and_core(string layer)
+    public void CoreLayersShouldOnlyDependOnBclAndCore(string layer)
     {
         foreach (var module in GetModuleNames())
         {

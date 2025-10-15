@@ -7,7 +7,7 @@ namespace Payments.Tests.Users.Domain;
 public class UserTests
 {
     [Fact]
-    public void Create_ShouldInitializeUserWithGivenValues()
+    public void CreateShouldInitializeUserWithGivenValues()
     {
         var hasher = new FakeHasher();
         var id = Uuid.New();
@@ -26,7 +26,7 @@ public class UserTests
     }
 
     [Fact]
-    public void ChangePassword_ShouldReplaceExistingHash()
+    public void ChangePasswordShouldReplaceExistingHash()
     {
         var hasher = new FakeHasher();
         var user = BuildUser(hasher);
@@ -39,7 +39,7 @@ public class UserTests
     }
 
     [Fact]
-    public void VerifyPassword_ShouldReturnHasherResult()
+    public void VerifyPasswordShouldReturnHasherResult()
     {
         const string storedHash = "stored-hash";
         var creationHasher = new FakeHasher(hashFunc: _ => storedHash);

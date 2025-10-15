@@ -6,11 +6,11 @@ public sealed record Uuid : StringValueObject
 
     public static Uuid New() => new(Guid.CreateVersion7().ToString());
 
-    public static Uuid From(string guid) => new(guid);
+    public static Uuid From(string id) => new(id);
 
-    protected override void Validate(string value)
+    protected override void Validate(string v)
     {
-        if (!Guid.TryParse(value, out Guid guid) && guid.Version == 7)
+        if (!Guid.TryParse(v, out Guid guid) && guid.Version == 7)
         {
             throw new ArgumentException("Invalid uuid");
         }

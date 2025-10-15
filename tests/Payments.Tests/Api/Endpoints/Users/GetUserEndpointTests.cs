@@ -17,7 +17,7 @@ public class GetUserEndpointTests : IClassFixture<WebApplicationFactory<Program>
     }
 
     [Fact]
-    public async Task GetUser_WithExistingUser_ShouldReturnEnvelopeWithUser()
+    public async Task GetUserWithExistingUserShouldReturnEnvelopeWithUser()
     {
         const string existingUserId = "0199db05-c460-72ce-891d-5892875f9663";
 
@@ -36,7 +36,7 @@ public class GetUserEndpointTests : IClassFixture<WebApplicationFactory<Program>
     }
 
     [Fact]
-    public async Task GetUser_WithUnknownUser_ShouldReturnEnvelopeWithNullData()
+    public async Task GetUserWithUnknownUserShouldReturnEnvelopeWithNullData()
     {
         var unknownUserId = Guid.CreateVersion7().ToString();
 
