@@ -7,6 +7,19 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
+  <Target Name="Husky"
+          BeforeTargets="Restore;CollectPackageReferences"
+          Condition="'$(HUSKY)' != 0 and '$(MSBuildProjectExtension)' == '.sln' and Exists('$(MSBuildThisFileDirectory).git')">
+    <Exec Command="dotnet tool restore"
+          StandardOutputImportance="Low"
+          StandardErrorImportance="High"
+          WorkingDirectory="$(MSBuildThisFileDirectory)" />
+    <Exec Command="dotnet husky install"
+          StandardOutputImportance="Low"
+          StandardErrorImportance="High"
+          WorkingDirectory="$(MSBuildThisFileDirectory)" />
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0">
       <PrivateAssets>all</PrivateAssets>
