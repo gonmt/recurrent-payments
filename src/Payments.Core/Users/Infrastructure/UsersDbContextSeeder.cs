@@ -18,11 +18,11 @@ public static class UsersDbContextSeeder
             return;
         }
 
-        var id = Uuid.From(UsersSeedData.UserId);
-        var email = new EmailAddress(UsersSeedData.Email);
-        var fullName = new UserFullName(UsersSeedData.FullName);
-        var password = UserPasswordHash.Create(UsersSeedData.Password, hasher);
-        var user = User.Create(id, email, fullName, password);
+        Uuid id = Uuid.From(UsersSeedData.UserId);
+        EmailAddress email = new EmailAddress(UsersSeedData.Email);
+        UserFullName fullName = new UserFullName(UsersSeedData.FullName);
+        UserPasswordHash password = UserPasswordHash.Create(UsersSeedData.Password, hasher);
+        User user = User.Create(id, email, fullName, password);
 
         _ = context.Users.Add(user);
 

@@ -1,4 +1,3 @@
-using System;
 using System.Reflection;
 
 using NetArchTest.Rules;
@@ -13,11 +12,11 @@ public class CoreArchitectureTests
     [Fact]
     public void ModulesShouldOnlyDependOnThemselvesOrShared()
     {
-        var moduleRoots = GetModuleRootNamespaces();
+        string[] moduleRoots = GetModuleRootNamespaces();
 
-        foreach (var moduleRoot in moduleRoots)
+        foreach (string moduleRoot in moduleRoots)
         {
-            var banned = moduleRoots
+            string[] banned = moduleRoots
                 .Where(candidate => candidate != moduleRoot && candidate != $"{CoreNamespace}.Shared")
                 .ToArray();
 
@@ -26,7 +25,7 @@ public class CoreArchitectureTests
                 continue;
             }
 
-            var result = Types.InAssembly(_coreAssembly)
+            TestResult result = Types.InAssembly(_coreAssembly)
                 .That()
                 .ResideInNamespaceStartingWith(moduleRoot)
                 .Should()
@@ -40,46 +39,52 @@ public class CoreArchitectureTests
     [Fact]
     public void DomainLayersShouldNotDependOnApplicationOrInfrastructure()
     {
-        foreach (var module in GetModuleNames())
+        foreach (string module in GetModuleNames())
         {
-            var domainNamespace = $"{CoreNamespace}.{module}.Domain";
+            string domainNamespace = $"{CoreNamespace}.{module}.Domain";
 
             if (!HasTypesInNamespace(domainNamespace))
             {
                 continue;
             }
 
-            var result = Types.InAssembly(_coreAssembly)
+            TestResult result = Types.InAssembly(_coreAssembly)
                 .That()
                 .ResideInNamespaceStartingWith(domainNamespace)
                 .Should()
-                .NotHaveDependencyOnAny($"{CoreNamespace}.{module}.Application", $"{CoreNamespace}.{module}.Infrastructure")
+                .NotHaveDependencyOnAny(
+                    $"{CoreNamespace}.{module}.Application",
+                    $"{CoreNamespace}.{module}.Infrastructure")
                 .GetResult();
 
-            Assert.True(result.IsSuccessful, $"The Domain layer of {module} cannot depend on Application or Infrastructure.");
+            Assert.True(
+                result.IsSuccessful,
+                $"The Domain layer of {module} cannot depend on Application or Infrastructure.");
         }
     }
 
     [Fact]
     public void ApplicationLayersShouldNotDependOnInfrastructure()
     {
-        foreach (var module in GetModuleNames())
+        foreach (string module in GetModuleNames())
         {
-            var applicationNamespace = $"{CoreNamespace}.{module}.Application";
+            string applicationNamespace = $"{CoreNamespace}.{module}.Application";
 
             if (!HasTypesInNamespace(applicationNamespace))
             {
                 continue;
             }
 
-            var result = Types.InAssembly(_coreAssembly)
+            TestResult result = Types.InAssembly(_coreAssembly)
                 .That()
                 .ResideInNamespaceStartingWith(applicationNamespace)
                 .Should()
                 .NotHaveDependencyOnAny($"{CoreNamespace}.{module}.Infrastructure")
                 .GetResult();
 
-            Assert.True(result.IsSuccessful, $"The Application layer of {module} cannot depend on Infrastructure.");
+            Assert.True(
+                result.IsSuccessful,
+                $"The Application layer of {module} cannot depend on Infrastructure.");
         }
     }
 
@@ -88,23 +93,25 @@ public class CoreArchitectureTests
     [InlineData("Application")]
     public void CoreLayersShouldOnlyDependOnBclAndCore(string layer)
     {
-        foreach (var module in GetModuleNames())
+        foreach (string module in GetModuleNames())
         {
-            var layerNamespace = $"{CoreNamespace}.{module}.{layer}";
+            string layerNamespace = $"{CoreNamespace}.{module}.{layer}";
 
             if (!HasTypesInNamespace(layerNamespace))
             {
                 continue;
             }
 
-            var result = Types.InAssembly(_coreAssembly)
+            TestResult result = Types.InAssembly(_coreAssembly)
                 .That()
                 .ResideInNamespaceStartingWith(layerNamespace)
                 .Should()
                 .OnlyHaveDependenciesOn("System", CoreNamespace)
                 .GetResult();
 
-            Assert.True(result.IsSuccessful, $"The {layer} layer of {module} can only depend on the C# BCL or {CoreNamespace}.");
+            Assert.True(
+                result.IsSuccessful,
+                $"The {layer} layer of {module} can only depend on the C# BCL or {CoreNamespace}.");
         }
     }
 
@@ -113,7 +120,8 @@ public class CoreArchitectureTests
         return _coreAssembly
             .GetTypes()
             .Select(type => type.Namespace)
-            .Where(ns => ns is not null && ns.StartsWith($"{CoreNamespace}.", StringComparison.Ordinal))
+            .Where(ns => ns is not null &&
+                         ns.StartsWith($"{CoreNamespace}.", StringComparison.Ordinal))
             .Select(ns => ns!.Split('.', StringSplitOptions.RemoveEmptyEntries))
             .Where(parts => parts.Length >= 3)
             .Select(parts => parts[2])
@@ -132,6 +140,7 @@ public class CoreArchitectureTests
     {
         return _coreAssembly
             .GetTypes()
-            .Any(type => type.Namespace is not null && type.Namespace.StartsWith(namespacePrefix, StringComparison.Ordinal));
+            .Any(type => type.Namespace is not null &&
+                         type.Namespace.StartsWith(namespacePrefix, StringComparison.Ordinal));
     }
 }

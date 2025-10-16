@@ -12,12 +12,12 @@ public class InMemoryUserRepository : IUserRepository
 
     public InMemoryUserRepository(IHasher hasher)
     {
-        var password = UserPasswordHash.Create(UsersSeedData.Password, hasher);
-        var id = Uuid.From(UsersSeedData.UserId);
-        var email = new EmailAddress(UsersSeedData.Email);
-        var name = new UserFullName(UsersSeedData.FullName);
+        UserPasswordHash password = UserPasswordHash.Create(UsersSeedData.Password, hasher);
+        Uuid id = Uuid.From(UsersSeedData.UserId);
+        EmailAddress email = new EmailAddress(UsersSeedData.Email);
+        UserFullName name = new UserFullName(UsersSeedData.FullName);
 
-        var user = User.Create(id, email, name, password);
+        User user = User.Create(id, email, name, password);
 
         _ = _store.TryAdd(id, user);
     }

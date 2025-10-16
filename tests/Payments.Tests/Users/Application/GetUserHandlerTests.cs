@@ -10,12 +10,12 @@ public class GetUserHandlerTests
     [Fact]
     public async Task FindWhenUserExistsShouldReturnResponse()
     {
-        var repository = new FakeUserRepository();
-        var user = CreateUser();
+        FakeUserRepository repository = new FakeUserRepository();
+        User user = CreateUser();
         await repository.Save(user);
-        var handler = new GetUserHandler(repository);
+        GetUserHandler handler = new GetUserHandler(repository);
 
-        var response = await handler.Find(user.Id.Value);
+        GetUserResponse? response = await handler.Find(user.Id.Value);
 
         Assert.NotNull(response);
         Assert.Equal(user.Id.Value, response.Id);
@@ -27,11 +27,11 @@ public class GetUserHandlerTests
     [Fact]
     public async Task FindWhenUserDoesNotExistShouldReturnNull()
     {
-        var repository = new FakeUserRepository();
-        var handler = new GetUserHandler(repository);
-        var missingId = Uuid.New();
+        FakeUserRepository repository = new FakeUserRepository();
+        GetUserHandler handler = new GetUserHandler(repository);
+        Uuid missingId = Uuid.New();
 
-        var response = await handler.Find(missingId.Value);
+        GetUserResponse? response = await handler.Find(missingId.Value);
 
         Assert.Null(response);
         Assert.Equal(new[] { missingId }, repository.FindCalls);
@@ -39,11 +39,11 @@ public class GetUserHandlerTests
 
     private static User CreateUser()
     {
-        var hasher = new FakeHasher();
-        var id = Uuid.New();
-        var email = new EmailAddress("john.doe@example.com");
-        var fullName = new UserFullName("John Doe");
-        var password = UserPasswordHash.Create("Valid12!", hasher);
+        FakeHasher hasher = new FakeHasher();
+        Uuid id = Uuid.New();
+        EmailAddress email = new EmailAddress("john.doe@example.com");
+        UserFullName fullName = new UserFullName("John Doe");
+        UserPasswordHash password = UserPasswordHash.Create("Valid12!", hasher);
 
         return User.Create(id, email, fullName, password);
     }
@@ -56,7 +56,7 @@ public class GetUserHandlerTests
         public Task<User?> Find(Uuid id)
         {
             FindCalls.Add(id);
-            _users.TryGetValue(id, out var user);
+            _users.TryGetValue(id, out User? user);
             return Task.FromResult(user);
         }
 

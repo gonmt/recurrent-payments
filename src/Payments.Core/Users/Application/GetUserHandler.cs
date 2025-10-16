@@ -9,7 +9,7 @@ public sealed class GetUserHandler(IUserRepository userRepository) : IHandler
 {
     public async Task<GetUserResponse?> Find(string id)
     {
-        var userId = Uuid.From(id);
+        Uuid userId = Uuid.From(id);
 
         User? user = await userRepository.Find(userId);
 

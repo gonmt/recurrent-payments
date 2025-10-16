@@ -16,14 +16,18 @@ dotnet_diagnostic.CA1716.severity = none
 # using y orden
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = true
+dotnet_diagnostic.IDE0005.severity = warning
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_diagnostic.IDE0065.severity = warning
 
 # longitud máxima de línea
 max_line_length = 120
 
 # var / tipos explícitos
-csharp_style_var_for_built_in_types = false:suggestion
-csharp_style_var_when_type_is_apparent = true:suggestion
-csharp_style_var_elsewhere = false:silent
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = false:warning
+csharp_style_var_elsewhere = false:warning
+dotnet_diagnostic.IDE0008.severity = warning
 
 # llaves y nuevas líneas
 csharp_prefer_braces = true:warning
@@ -36,6 +40,10 @@ csharp_style_namespace_declarations = file_scoped:warning
 # Expresión vs bloque
 csharp_style_expression_bodied_methods = when_on_single_line:suggestion
 csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+
+# Preferir constructores primarios cuando sea posible
+csharp_style_prefer_primary_constructors = true:warning
+dotnet_diagnostic.IDE0290.severity = warning
 
 # Parámetros y this.
 dotnet_style_qualification_for_field = false:suggestion
@@ -89,14 +97,3 @@ dotnet_naming_rule.consts_pascal.style = pascal
 dotnet_naming_symbols.consts.applicable_kinds = field
 dotnet_naming_symbols.consts.required_modifiers = const
 dotnet_naming_style.pascal.capitalization = pascal_case
-
-
-# Puedes “elevar” reglas específicas:
-# dotnet_diagnostic.IDE0060.severity = warning  # Remove unused parameter
-# dotnet_diagnostic.IDE0051.severity = warning  # Remove unused private members
-
-# ===== Test projects (relaja reglas) =====
-[tests/**.cs]
-csharp_style_var_for_built_in_types = true:silent
-dotnet_analyzer_diagnostic.severity = suggestion
-dotnet_analyzer_diagnostic.category-Performance.severity = warning

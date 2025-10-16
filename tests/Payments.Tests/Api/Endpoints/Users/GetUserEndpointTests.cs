@@ -1,4 +1,3 @@
-using System;
 using System.Net.Http.Json;
 
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -7,24 +6,19 @@ using Payments.Core.Users.Application;
 
 namespace Payments.Tests.Api.Endpoints.Users;
 
-public class GetUserEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public class GetUserEndpointTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly HttpClient _client;
-
-    public GetUserEndpointTests(WebApplicationFactory<Program> factory)
-    {
-        _client = factory.CreateClient();
-    }
+    private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
     public async Task GetUserWithExistingUserShouldReturnEnvelopeWithUser()
     {
         const string existingUserId = "0199db05-c460-72ce-891d-5892875f9663";
 
-        var response = await _client.GetAsync($"/users/{existingUserId}");
+        HttpResponseMessage response = await _client.GetAsync($"/users/{existingUserId}");
 
         response.EnsureSuccessStatusCode();
-        var payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<GetUserResponse?>>();
+        ApiEnvelope<GetUserResponse?>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<GetUserResponse?>>();
 
         Assert.NotNull(payload);
         Assert.True(payload.Success);
@@ -38,12 +32,12 @@ public class GetUserEndpointTests : IClassFixture<WebApplicationFactory<Program>
     [Fact]
     public async Task GetUserWithUnknownUserShouldReturnEnvelopeWithNullData()
     {
-        var unknownUserId = Guid.CreateVersion7().ToString();
+        string unknownUserId = Guid.CreateVersion7().ToString();
 
-        var response = await _client.GetAsync($"/users/{unknownUserId}");
+        HttpResponseMessage response = await _client.GetAsync($"/users/{unknownUserId}");
 
         response.EnsureSuccessStatusCode();
-        var payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<GetUserResponse?>>();
+        ApiEnvelope<GetUserResponse?>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<GetUserResponse?>>();
 
         Assert.NotNull(payload);
         Assert.True(payload.Success);

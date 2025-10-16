@@ -9,15 +9,15 @@ public class UserTests
     [Fact]
     public void CreateShouldInitializeUserWithGivenValues()
     {
-        var hasher = new FakeHasher();
-        var id = Uuid.New();
-        var email = new EmailAddress("john.doe@example.com");
-        var fullName = new UserFullName("John Doe");
-        var password = UserPasswordHash.Create("Valid12!", hasher);
+        FakeHasher hasher = new FakeHasher();
+        Uuid id = Uuid.New();
+        EmailAddress email = new EmailAddress("john.doe@example.com");
+        UserFullName fullName = new UserFullName("John Doe");
+        UserPasswordHash password = UserPasswordHash.Create("Valid12!", hasher);
 
-        var creationLowerBound = DateTimeOffset.UtcNow;
-        var user = User.Create(id, email, fullName, password);
-        var creationUpperBound = DateTimeOffset.UtcNow;
+        DateTimeOffset creationLowerBound = DateTimeOffset.UtcNow;
+        User user = User.Create(id, email, fullName, password);
+        DateTimeOffset creationUpperBound = DateTimeOffset.UtcNow;
 
         Assert.Equal(id, user.Id);
         Assert.Equal(email, user.Email);
@@ -28,9 +28,9 @@ public class UserTests
     [Fact]
     public void ChangePasswordShouldReplaceExistingHash()
     {
-        var hasher = new FakeHasher();
-        var user = BuildUser(hasher);
-        var newPasswordHash = UserPasswordHash.Create("NewValid1!", hasher);
+        FakeHasher hasher = new FakeHasher();
+        User user = BuildUser(hasher);
+        UserPasswordHash newPasswordHash = UserPasswordHash.Create("NewValid1!", hasher);
 
         user.ChangePassword(newPasswordHash);
 
@@ -42,11 +42,11 @@ public class UserTests
     public void VerifyPasswordShouldReturnHasherResult()
     {
         const string storedHash = "stored-hash";
-        var creationHasher = new FakeHasher(hashFunc: _ => storedHash);
-        var user = BuildUser(creationHasher);
-        var verifyingHasher = new FakeHasher(verifyFunc: (plain, hash) => hash == storedHash && plain == "Valid12!");
+        FakeHasher creationHasher = new FakeHasher(hashFunc: _ => storedHash);
+        User user = BuildUser(creationHasher);
+        FakeHasher verifyingHasher = new FakeHasher(verifyFunc: (plain, hash) => hash == storedHash && plain == "Valid12!");
 
-        var result = user.VerifyPassword("Valid12!", verifyingHasher);
+        bool result = user.VerifyPassword("Valid12!", verifyingHasher);
 
         Assert.True(result);
         Assert.Single(verifyingHasher.VerifyCalls);
@@ -55,10 +55,10 @@ public class UserTests
 
     private static User BuildUser(FakeHasher hasher)
     {
-        var id = Uuid.New();
-        var email = new EmailAddress("john.doe@example.com");
-        var fullName = new UserFullName("John Doe");
-        var password = UserPasswordHash.Create("Valid12!", hasher);
+        Uuid id = Uuid.New();
+        EmailAddress email = new EmailAddress("john.doe@example.com");
+        UserFullName fullName = new UserFullName("John Doe");
+        UserPasswordHash password = UserPasswordHash.Create("Valid12!", hasher);
 
         return User.Create(id, email, fullName, password);
     }

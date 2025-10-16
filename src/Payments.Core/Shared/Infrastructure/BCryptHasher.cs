@@ -1,20 +1,20 @@
 using Payments.Core.Shared.Domain;
 
-namespace Payments.Core.Shared.Infrastructure;
+using BCryptAlgorithm = BCrypt.Net.BCrypt;
 
-using BCrypt.Net;
+namespace Payments.Core.Shared.Infrastructure;
 
 public class BCryptHasher : IHasher
 {
     private const int WorkFactor = 12;
 
-    public string Hash(string plainText) => BCrypt.HashPassword(plainText, WorkFactor);
+    public string Hash(string plainText) => BCryptAlgorithm.HashPassword(plainText, WorkFactor);
 
     public bool Verify(string plainText, string textHash)
     {
         try
         {
-            return BCrypt.Verify(plainText, textHash);
+            return BCryptAlgorithm.Verify(plainText, textHash);
         }
         catch
         {
