@@ -1,6 +1,6 @@
 using Payments.Core.Shared.Domain;
 
-namespace Payments.Tests.Shared.Domain;
+namespace Payments.Core.Tests.Shared.Domain;
 
 public sealed class FakeHasher(
     Func<string, string>? hashFunc = null,

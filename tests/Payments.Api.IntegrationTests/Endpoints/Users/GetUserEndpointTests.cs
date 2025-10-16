@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 using Payments.Core.Users.Application;
 
-namespace Payments.Tests.Api.Endpoints.Users;
+namespace Payments.Api.IntegrationTests.Endpoints.Users;
 
 public class GetUserEndpointTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {

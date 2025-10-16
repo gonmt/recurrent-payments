@@ -1,9 +1,9 @@
 using Payments.Core.Shared.Domain.ValueObjects;
+using Payments.Core.Tests.Shared.Domain;
 using Payments.Core.Users.Application;
 using Payments.Core.Users.Domain;
-using Payments.Tests.Shared.Domain;
 
-namespace Payments.Tests.Users.Application;
+namespace Payments.Core.Tests.Users.Application;
 
 public class GetUserHandlerTests
 {

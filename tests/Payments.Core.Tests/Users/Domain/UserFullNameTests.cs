@@ -1,6 +1,6 @@
 using Payments.Core.Users.Domain;
 
-namespace Payments.Tests.Users.Domain;
+namespace Payments.Core.Tests.Users.Domain;
 
 public class UserFullNameTests
 {

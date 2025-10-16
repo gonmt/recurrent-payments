@@ -1,7 +1,7 @@
+using Payments.Core.Tests.Shared.Domain;
 using Payments.Core.Users.Domain;
-using Payments.Tests.Shared.Domain;
 
-namespace Payments.Tests.Users.Domain;
+namespace Payments.Core.Tests.Users.Domain;
 
 public class UserPasswordHashTests
 {

@@ -2,7 +2,7 @@ using System.Reflection;
 
 using NetArchTest.Rules;
 
-namespace Payments.Tests.Core;
+namespace Payments.Core.Tests.Architecture;
 
 public class CoreArchitectureTests
 {
