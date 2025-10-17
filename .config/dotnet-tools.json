@@ -15,6 +15,13 @@
         "roslynator"
       ],
       "rollForward": false
+    },
+    "dotnet-stryker": {
+      "version": "4.8.1",
+      "commands": [
+        "dotnet-stryker"
+      ],
+      "rollForward": false
     }
   }
 }

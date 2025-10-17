@@ -1,0 +1,33 @@
+{
+  "$schema": "https://stryker-mutator.io/stryker.schema.json",
+  "stryker-config": {
+    "solution": "Payments.Recurring.sln",
+    "project": "Payments.Core.csproj",
+    "test-projects": [
+      "tests/Payments.Core.Tests/Payments.Core.Tests.csproj"
+    ],
+    "mutate": [
+      "src/Payments.Core/**/*.cs"
+    ],
+    "reporters": [
+      "Progress",
+      "Html",
+      "Json"
+    ],
+    "thresholds": {
+      "high": 80,
+      "low": 60,
+      "break": 50
+    },
+    "coverage-analysis": "perTest",
+    "concurrency": 6,
+    "additional-timeout": 5000,
+    "language-version": "latest",
+    "disable-bail": false,
+    "disable-mix-mutants": false,
+    "ignore-mutations": [],
+    "ignore-methods": [],
+    "report-file-name": "mutation-report",
+    "break-on-initial-test-failure": false
+  }
+}
