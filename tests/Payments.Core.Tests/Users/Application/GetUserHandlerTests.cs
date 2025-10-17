@@ -1,3 +1,5 @@
+using Bogus;
+
 using Payments.Core.Shared.Domain.ValueObjects;
 using Payments.Core.Tests.Shared.Domain;
 using Payments.Core.Users.Application;
@@ -10,10 +12,10 @@ public class GetUserHandlerTests
     [Fact]
     public async Task FindWhenUserExistsShouldReturnResponse()
     {
-        FakeUserRepository repository = new FakeUserRepository();
+        FakeUserRepository repository = new();
         User user = CreateUser();
         await repository.Save(user);
-        GetUserHandler handler = new GetUserHandler(repository);
+        GetUserHandler handler = new(repository);
 
         GetUserResponse? response = await handler.Find(user.Id.Value);
 
@@ -27,8 +29,8 @@ public class GetUserHandlerTests
     [Fact]
     public async Task FindWhenUserDoesNotExistShouldReturnNull()
     {
-        FakeUserRepository repository = new FakeUserRepository();
-        GetUserHandler handler = new GetUserHandler(repository);
+        FakeUserRepository repository = new();
+        GetUserHandler handler = new(repository);
         Uuid missingId = Uuid.New();
 
         GetUserResponse? response = await handler.Find(missingId.Value);
@@ -39,10 +41,11 @@ public class GetUserHandlerTests
 
     private static User CreateUser()
     {
-        FakeHasher hasher = new FakeHasher();
+        Faker faker = new();
+        FakeHasher hasher = new();
         Uuid id = Uuid.New();
-        EmailAddress email = new EmailAddress("john.doe@example.com");
-        UserFullName fullName = new UserFullName("John Doe");
+        EmailAddress email = new(faker.Internet.Email());
+        UserFullName fullName = new(faker.Name.FullName());
         UserPasswordHash password = UserPasswordHash.Create("Valid12!", hasher);
 
         return User.Create(id, email, fullName, password);

@@ -1,3 +1,6 @@
+using Bogus;
+
+using Payments.Core.Shared.Domain;
 using Payments.Core.Shared.Domain.ValueObjects;
 using Payments.Core.Tests.Shared.Domain;
 using Payments.Core.Users.Application;
@@ -7,29 +10,33 @@ namespace Payments.Core.Tests.Users.Application;
 
 public class AuthenticateUserHandlerTests
 {
+    private static readonly Faker _faker = new();
+
     [Fact]
     public async Task AuthenticateWithValidCredentialsShouldReturnUserSummary()
     {
         FakeHasher hasher = new();
-        InMemoryRepository repository = new(hasher);
+        string password = GenerateValidPassword();
+        User user = BuildUser(hasher, password);
+        InMemoryRepository repository = new(user);
         AuthenticateUserHandler handler = new(repository, hasher);
 
-        AuthenticateUserResponse? response = await handler.Authenticate("user@example.com", "Valid12!");
+        AuthenticateUserResponse? response = await handler.Authenticate(user.Email.Value, password);
 
         Assert.NotNull(response);
-        Assert.Equal(repository.StoredUser.Id.Value, response.Id);
-        Assert.Equal(repository.StoredUser.Email.Value, response.Email);
-        Assert.Equal(repository.StoredUser.FullName.Value, response.FullName);
+        Assert.Equal(user.Id.Value, response.Id);
+        Assert.Equal(user.Email.Value, response.Email);
+        Assert.Equal(user.FullName.Value, response.FullName);
     }
 
     [Fact]
     public async Task AuthenticateWhenUserDoesNotExistShouldReturnNull()
     {
         FakeHasher hasher = new();
-        InMemoryRepository repository = new(hasher, includeUser: false);
+        InMemoryRepository repository = new(null);
         AuthenticateUserHandler handler = new(repository, hasher);
 
-        AuthenticateUserResponse? response = await handler.Authenticate("missing@example.com", "SomePass1!");
+        AuthenticateUserResponse? response = await handler.Authenticate(_faker.Internet.Email(), GenerateValidPassword());
 
         Assert.Null(response);
     }
@@ -37,53 +44,76 @@ public class AuthenticateUserHandlerTests
     [Fact]
     public async Task AuthenticateWithIncorrectPasswordShouldReturnNull()
     {
-        FakeHasher hasher = new((plain) => $"{plain}_HASH", (plain, hash) => false);
-        InMemoryRepository repository = new(hasher);
+        FakeHasher hasher = new(hashFunc: plain => $"{plain}_HASH", verifyFunc: (_, _) => false);
+        string password = GenerateValidPassword();
+        User user = BuildUser(hasher, password);
+        InMemoryRepository repository = new(user);
         AuthenticateUserHandler handler = new(repository, hasher);
 
-        AuthenticateUserResponse? response = await handler.Authenticate("user@example.com", "WrongPass1!");
+        AuthenticateUserResponse? response = await handler.Authenticate(user.Email.Value, password);
 
         Assert.Null(response);
     }
 
+    private static User BuildUser(IHasher hasher, string password)
+    {
+        return User.Create(
+            Uuid.New(),
+            new EmailAddress(_faker.Internet.Email()),
+            new UserFullName(_faker.Person.FullName),
+            UserPasswordHash.Create(password, hasher));
+    }
+
+    private static string GenerateValidPassword()
+    {
+        List<char> characters =
+        [
+            _faker.Random.Char('A', 'Z'),
+            _faker.Random.Char('a', 'z'),
+            _faker.Random.Char('0', '9'),
+            _faker.Random.ArrayElement("!@#$%^&*".ToCharArray())
+        ];
+
+        int extraCharacters = _faker.Random.Int(4, 8);
+        for (int i = 0; i < extraCharacters; i++)
+        {
+            characters.Add(_faker.Random.ArrayElement("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*".ToCharArray()));
+        }
+
+        _ = _faker.Random.Shuffle(characters);
+        return new string(characters.ToArray());
+    }
+
     private sealed class InMemoryRepository : IUserRepository
     {
-        private readonly Dictionary<EmailAddress, User> _users = new();
-        public User StoredUser { get; }
+        private readonly Dictionary<EmailAddress, User> _byEmail = [];
+        private readonly Dictionary<Uuid, User> _byId = new();
 
-        public InMemoryRepository(FakeHasher hasher, bool includeUser = true)
+        public InMemoryRepository(User? user)
         {
-            if (includeUser)
+            if (user is not null)
             {
-                UserPasswordHash password = UserPasswordHash.Create("Valid12!", hasher);
-                Uuid id = Uuid.New();
-                EmailAddress email = new EmailAddress("user@example.com");
-                UserFullName fullName = new UserFullName("Jane Doe");
-
-                StoredUser = User.Create(id, email, fullName, password);
-                _users[email] = StoredUser;
-            }
-            else
-            {
-                StoredUser = null!;
+                _byEmail[user.Email] = user;
+                _byId[user.Id] = user;
             }
         }
 
         public Task<User?> Find(Uuid id)
         {
-            User? user = _users.Values.FirstOrDefault(u => u.Id == id);
+            _ = _byId.TryGetValue(id, out User? user);
             return Task.FromResult(user);
         }
 
         public Task<User?> FindByEmail(EmailAddress email)
         {
-            _users.TryGetValue(email, out User? user);
+            _ = _byEmail.TryGetValue(email, out User? user);
             return Task.FromResult(user);
         }
 
         public Task Save(User user)
         {
-            _users[user.Email] = user;
+            _byEmail[user.Email] = user;
+            _byId[user.Id] = user;
             return Task.CompletedTask;
         }
     }

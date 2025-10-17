@@ -7,7 +7,7 @@ public class UserFullNameTests
     [Fact]
     public void ConstructorShouldTrimValue()
     {
-        UserFullName fullName = new UserFullName("   Jane Doe   ");
+        UserFullName fullName = new("   Jane Doe   ");
 
         Assert.Equal("Jane Doe", fullName.Value);
     }
@@ -22,7 +22,7 @@ public class UserFullNameTests
     [Fact]
     public void ConstructorWithTooLongValueShouldThrow()
     {
-        string input = new string('a', 101);
+        string input = new('a', 101);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => new UserFullName(input));
     }

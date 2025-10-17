@@ -35,7 +35,7 @@ public static class ApiResponses
         string? details = null, IEnumerable<ApiFieldError>? fields = null, bool retryable = false)
     {
         ctx.Response.StatusCode = statusCode;
-        ApiError body = new ApiError(new ApiErrorBody(code, message, details, fields, retryable), Meta(ctx));
+        ApiError body = new(new ApiErrorBody(code, message, details, fields, retryable), Meta(ctx));
         return Results.Json(body);
     }
 

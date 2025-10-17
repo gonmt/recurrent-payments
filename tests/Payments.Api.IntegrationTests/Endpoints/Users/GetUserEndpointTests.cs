@@ -2,20 +2,24 @@ using System.Net.Http.Json;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 
+using Payments.Api.IntegrationTests.Support;
 using Payments.Core.Users.Application;
+using Payments.Core.Users.Domain;
 
 namespace Payments.Api.IntegrationTests.Endpoints.Users;
 
 public class GetUserEndpointTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
+    private readonly WebApplicationFactory<Program> _factory = factory;
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
     public async Task GetUserWithExistingUserShouldReturnEnvelopeWithUser()
     {
-        const string existingUserId = "0199db05-c460-72ce-891d-5892875f9663";
+        (User User, string Password) userData = await IntegrationTestData.CreateUser(_factory);
+        User user = userData.User;
 
-        HttpResponseMessage response = await _client.GetAsync($"/users/{existingUserId}");
+        HttpResponseMessage response = await _client.GetAsync($"/users/{user.Id.Value}");
 
         response.EnsureSuccessStatusCode();
         ApiEnvelope<GetUserResponse?>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<GetUserResponse?>>();
@@ -23,9 +27,9 @@ public class GetUserEndpointTests(WebApplicationFactory<Program> factory) : ICla
         Assert.NotNull(payload);
         Assert.True(payload.Success);
         Assert.NotNull(payload.Data);
-        Assert.Equal(existingUserId, payload.Data!.Id);
-        Assert.Equal("gon@gmail.com", payload.Data.Email);
-        Assert.Equal("Gonzalo Torres", payload.Data.FullName);
+        Assert.Equal(user.Id.Value, payload.Data!.Id);
+        Assert.Equal(user.Email.Value, payload.Data.Email);
+        Assert.Equal(user.FullName.Value, payload.Data.FullName);
         Assert.False(string.IsNullOrWhiteSpace(payload.Meta.RequestId));
     }
 

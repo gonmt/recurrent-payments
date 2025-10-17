@@ -1,3 +1,5 @@
+using Bogus;
+
 using Payments.Core.Auth.Application;
 using Payments.Core.Auth.Domain;
 
@@ -11,10 +13,15 @@ public class GenerateTokenHandlerTests
         FakeTokenProvider provider = new();
         GenerateTokenHandler handler = new(provider);
 
-        GenerateTokenResponse response = handler.Generate("user-1", "user@example.com", "Jane Doe");
+        Faker faker = new();
+        string userId = faker.Random.Guid().ToString();
+        string email = faker.Internet.Email();
+        string fullName = faker.Name.FullName();
+
+        GenerateTokenResponse response = handler.Generate(userId, email, fullName);
 
         Assert.Equal("generated-token", response.Token);
-        Assert.Equal(("user-1", "user@example.com", "Jane Doe"), provider.LastGenerateArguments);
+        Assert.Equal((userId, email, fullName), provider.LastGenerateArguments);
     }
 
     private sealed class FakeTokenProvider : ITokenProvider

@@ -19,8 +19,8 @@ public static class UsersDbContextSeeder
         }
 
         Uuid id = Uuid.From(UsersSeedData.UserId);
-        EmailAddress email = new EmailAddress(UsersSeedData.Email);
-        UserFullName fullName = new UserFullName(UsersSeedData.FullName);
+        EmailAddress email = new(UsersSeedData.Email);
+        UserFullName fullName = new(UsersSeedData.FullName);
         UserPasswordHash password = UserPasswordHash.Create(UsersSeedData.Password, hasher);
         User user = User.Create(id, email, fullName, password);
 

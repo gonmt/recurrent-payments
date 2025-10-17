@@ -9,10 +9,10 @@ public class UserTests
     [Fact]
     public void CreateShouldInitializeUserWithGivenValues()
     {
-        FakeHasher hasher = new FakeHasher();
+        FakeHasher hasher = new();
         Uuid id = Uuid.New();
-        EmailAddress email = new EmailAddress("john.doe@example.com");
-        UserFullName fullName = new UserFullName("John Doe");
+        EmailAddress email = new("john.doe@example.com");
+        UserFullName fullName = new("John Doe");
         UserPasswordHash password = UserPasswordHash.Create("Valid12!", hasher);
 
         DateTimeOffset creationLowerBound = DateTimeOffset.UtcNow;
@@ -28,7 +28,7 @@ public class UserTests
     [Fact]
     public void ChangePasswordShouldReplaceExistingHash()
     {
-        FakeHasher hasher = new FakeHasher();
+        FakeHasher hasher = new();
         User user = BuildUser(hasher);
         UserPasswordHash newPasswordHash = UserPasswordHash.Create("NewValid1!", hasher);
 
@@ -42,9 +42,9 @@ public class UserTests
     public void VerifyPasswordShouldReturnHasherResult()
     {
         const string storedHash = "stored-hash";
-        FakeHasher creationHasher = new FakeHasher(hashFunc: _ => storedHash);
+        FakeHasher creationHasher = new(hashFunc: _ => storedHash);
         User user = BuildUser(creationHasher);
-        FakeHasher verifyingHasher = new FakeHasher(verifyFunc: (plain, hash) => hash == storedHash && plain == "Valid12!");
+        FakeHasher verifyingHasher = new(verifyFunc: (plain, hash) => hash == storedHash && plain == "Valid12!");
 
         bool result = user.VerifyPassword("Valid12!", verifyingHasher);
 
@@ -56,8 +56,8 @@ public class UserTests
     private static User BuildUser(FakeHasher hasher)
     {
         Uuid id = Uuid.New();
-        EmailAddress email = new EmailAddress("john.doe@example.com");
-        UserFullName fullName = new UserFullName("John Doe");
+        EmailAddress email = new("john.doe@example.com");
+        UserFullName fullName = new("John Doe");
         UserPasswordHash password = UserPasswordHash.Create("Valid12!", hasher);
 
         return User.Create(id, email, fullName, password);

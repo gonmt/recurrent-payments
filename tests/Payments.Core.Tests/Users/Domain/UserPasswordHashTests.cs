@@ -8,7 +8,7 @@ public class UserPasswordHashTests
     [Fact]
     public void CreateWithValidPasswordShouldReturnHash()
     {
-        FakeHasher hasher = new FakeHasher();
+        FakeHasher hasher = new();
 
         UserPasswordHash passwordHash = UserPasswordHash.Create("Valid12!", hasher);
 
@@ -20,7 +20,7 @@ public class UserPasswordHashTests
     [InlineData("TooLongPass12!")]
     public void CreateWithInvalidLengthShouldThrowArgumentOutOfRange(string plainPassword)
     {
-        FakeHasher hasher = new FakeHasher();
+        FakeHasher hasher = new();
 
         Assert.Throws<ArgumentOutOfRangeException>(() => UserPasswordHash.Create(plainPassword, hasher));
     }
@@ -32,7 +32,7 @@ public class UserPasswordHashTests
     [InlineData("NoSymbol1")]
     public void CreateWithMissingCharacterRequirementShouldThrowArgumentException(string plainPassword)
     {
-        FakeHasher hasher = new FakeHasher();
+        FakeHasher hasher = new();
 
         Assert.Throws<ArgumentException>(() => UserPasswordHash.Create(plainPassword, hasher));
     }
@@ -40,7 +40,7 @@ public class UserPasswordHashTests
     [Fact]
     public void CreateShouldAllowPasswordsTrimmedForValidation()
     {
-        FakeHasher hasher = new FakeHasher();
+        FakeHasher hasher = new();
 
         UserPasswordHash passwordHash = UserPasswordHash.Create("  Valid12!  ", hasher);
 
@@ -51,7 +51,7 @@ public class UserPasswordHashTests
     [Fact]
     public void VerifyShouldReturnHasherResult()
     {
-        FakeHasher hasher = new FakeHasher();
+        FakeHasher hasher = new();
         UserPasswordHash passwordHash = UserPasswordHash.Create("Valid12!", hasher);
 
         bool result = passwordHash.Verify("Valid12!", hasher);
@@ -63,7 +63,7 @@ public class UserPasswordHashTests
     [Fact]
     public void VerifyWhenHasherReturnsFalseShouldReturnFalse()
     {
-        FakeHasher hasher = new FakeHasher(verifyFunc: (_, _) => false);
+        FakeHasher hasher = new(verifyFunc: (_, _) => false);
         UserPasswordHash passwordHash = UserPasswordHash.Create("Valid12!", hasher);
 
         Assert.False(passwordHash.Verify("Valid12!", hasher));
@@ -72,7 +72,7 @@ public class UserPasswordHashTests
     [Fact]
     public void ToStringShouldMaskActualValue()
     {
-        FakeHasher hasher = new FakeHasher();
+        FakeHasher hasher = new();
         UserPasswordHash passwordHash = UserPasswordHash.Create("Valid12!", hasher);
 
         Assert.Equal("********", passwordHash.ToString());

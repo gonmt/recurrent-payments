@@ -3,6 +3,9 @@ using System.Net.Http.Json;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 
+using Payments.Api.IntegrationTests.Support;
+using Payments.Core.Users.Domain;
+
 namespace Payments.Api.IntegrationTests.Endpoints.Auth;
 
 public class LoginEndpointTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
@@ -12,7 +15,8 @@ public class LoginEndpointTests(WebApplicationFactory<Program> factory) : IClass
     [Fact]
     public async Task LoginWithValidCredentialsShouldReturnTokenEnvelope()
     {
-        LoginRequest request = new("gon@gmail.com", "Mono8210!");
+        (User user, string password) = await IntegrationTestData.CreateUser(factory);
+        LoginRequest request = new(user.Email.Value, password);
 
         HttpResponseMessage response = await _client.PostAsJsonAsync("/auth/login", request);
 
@@ -29,7 +33,15 @@ public class LoginEndpointTests(WebApplicationFactory<Program> factory) : IClass
     [Fact]
     public async Task LoginWithInvalidPasswordShouldReturnUnauthorizedError()
     {
-        LoginRequest request = new("gon@gmail.com", "WrongPass1!");
+        (User user, string password) = await IntegrationTestData.CreateUser(factory);
+        string invalidPassword;
+        do
+        {
+            invalidPassword = IntegrationTestData.GenerateValidPassword();
+        }
+        while (invalidPassword == password);
+
+        LoginRequest request = new(user.Email.Value, invalidPassword);
 
         HttpResponseMessage response = await _client.PostAsJsonAsync("/auth/login", request);
 
