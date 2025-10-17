@@ -9,6 +9,9 @@ public class EfUserRepository(UsersDbContext context) : IUserRepository
 {
     public async Task<User?> Find(Uuid id) => await context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
+    public async Task<User?> FindByEmail(EmailAddress email) =>
+        await context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
     public async Task Save(User user)
     {
         _ = await context.Users.AddAsync(user);

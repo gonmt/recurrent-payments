@@ -1,6 +1,11 @@
+using FluentValidation;
+
 using Microsoft.EntityFrameworkCore;
 
+using Payments.Api.Endpoints.Auth;
 using Payments.Api.Extensions;
+using Payments.Core.Auth.Domain;
+using Payments.Core.Auth.Infrastructure;
 using Payments.Core.Shared.Domain;
 using Payments.Core.Shared.Infrastructure;
 using Payments.Core.Users.Domain;
@@ -12,6 +17,9 @@ builder.Services.AddOpenApi();
 
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.IncludeFields = true);
 
+builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
+builder.Services.Configure<JwtTokenOptions>(builder.Configuration.GetSection(JwtTokenOptions.SectionName));
+builder.Services.AddSingleton<ITokenProvider, JwtTokenProvider>();
 builder.Services.AddScoped<IHasher, BCryptHasher>();
 builder.Services.AddDbContext<UsersDbContext>(options => options.UseInMemoryDatabase("PaymentsUsers"));
 builder.Services.AddScoped<IUserRepository, EfUserRepository>();

@@ -60,6 +60,12 @@ public class GetUserHandlerTests
             return Task.FromResult(user);
         }
 
+        public Task<User?> FindByEmail(EmailAddress email)
+        {
+            User? user = _users.Values.FirstOrDefault(u => u.Email == email);
+            return Task.FromResult(user);
+        }
+
         public Task Save(User user)
         {
             _users[user.Id] = user;
