@@ -40,6 +40,8 @@ csharp_style_namespace_declarations = file_scoped:warning
 # Expresión vs bloque
 csharp_style_expression_bodied_methods = when_on_single_line:suggestion
 csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+csharp_style_implicit_object_creation = when_type_is_apparent:warning
+dotnet_diagnostic.IDE0090.severity = warning
 
 # Preferir constructores primarios cuando sea posible
 csharp_style_prefer_primary_constructors = true:warning
@@ -88,6 +90,9 @@ dotnet_naming_symbols.interfaces.applicable_accessibilities = public, internal, 
 
 dotnet_naming_style.prefix_I.capitalization = pascal_case
 dotnet_naming_style.prefix_I.required_prefix = I
+
+# Enforce naming diagnostics via format
+dotnet_diagnostic.IDE1006.severity = warning
 
 # Constantes => PascalCase
 dotnet_naming_rule.consts_pascal.severity = suggestion
