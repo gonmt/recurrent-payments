@@ -138,9 +138,10 @@ public class CoreArchitectureTests
 
     private static bool HasTypesInNamespace(string namespacePrefix)
     {
-        return _coreAssembly
-            .GetTypes()
-            .Any(type => type.Namespace is not null &&
-                         type.Namespace.StartsWith(namespacePrefix, StringComparison.Ordinal));
+        Type[] types = _coreAssembly.GetTypes();
+        return Array.Exists(
+            types,
+            type => type.Namespace is not null &&
+                    type.Namespace.StartsWith(namespacePrefix, StringComparison.Ordinal));
     }
 }

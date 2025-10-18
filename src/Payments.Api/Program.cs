@@ -44,6 +44,12 @@ using (IServiceScope scope = app.Services.CreateScope())
     UsersDbContextSeeder.Seed(context, hasher);
 }
 
-app.Run();
+await app.RunAsync();
 
-public partial class Program;
+public partial class Program
+{
+    // Protected constructor satisfies analyzers while keeping WebApplicationFactory support.
+    protected Program()
+    {
+    }
+}

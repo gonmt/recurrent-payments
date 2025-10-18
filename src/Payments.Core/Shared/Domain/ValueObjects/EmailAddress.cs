@@ -4,9 +4,12 @@ namespace Payments.Core.Shared.Domain.ValueObjects;
 
 public sealed partial record EmailAddress : StringValueObject
 {
-    public EmailAddress(string value) : base(value) { }
+    public EmailAddress(string value)
+        : base(value, validator: EnsureValidEmail)
+    {
+    }
 
-    protected override void Validate(string v)
+    private static void EnsureValidEmail(string v)
     {
         if (!MyRegex().IsMatch(v))
         {

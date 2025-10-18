@@ -4,16 +4,33 @@ public abstract record class StringValueObject
 {
     public string Value { get; }
 
-    protected StringValueObject(string value)
+    protected StringValueObject(
+        string value,
+        Func<string, string>? normalizer = null,
+        Action<string>? validator = null)
     {
-        Value = Normalize(value);
-        Validate(Value);
+        normalizer ??= DefaultNormalize;
+        validator ??= static _ => { };
+
+        string normalized = normalizer(value);
+        if (normalized is null)
+        {
+            throw new ArgumentNullException(nameof(value));
+        }
+
+        Value = normalized;
+        validator(Value);
     }
 
-    protected virtual string Normalize(string v)
-        => v?.Trim() ?? throw new ArgumentNullException(nameof(v));
+    private static string DefaultNormalize(string v)
+    {
+        if (v is null)
+        {
+            throw new ArgumentNullException(nameof(v));
+        }
 
-    protected virtual void Validate(string v) { }
+        return v.Trim();
+    }
 
     public override string ToString() => Value;
 

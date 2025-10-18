@@ -4,9 +4,12 @@ namespace Payments.Core.Users.Domain;
 
 public sealed record class UserFullName : StringValueObject
 {
-    public UserFullName(string value) : base(value) { }
+    public UserFullName(string value)
+        : base(value, validator: EnsureLengthIsWithinRange)
+    {
+    }
 
-    protected override void Validate(string v)
+    private static void EnsureLengthIsWithinRange(string v)
     {
         if (v.Length is < 3 or > 100)
         {
