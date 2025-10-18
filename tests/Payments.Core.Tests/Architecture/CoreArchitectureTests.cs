@@ -4,6 +4,7 @@ using NetArchTest.Rules;
 
 namespace Payments.Core.Tests.Architecture;
 
+[Trait("Category", "Architecture")]
 public class CoreArchitectureTests
 {
     private const string CoreNamespace = "Payments.Core";
