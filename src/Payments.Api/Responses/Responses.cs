@@ -1,7 +1,7 @@
 namespace Payments.Api.Responses;
 
 public record ApiOk<T>(T Data, ApiMeta Meta) { public bool Success => true; }
-public record ApiError(ApiErrorBody Error, ApiMeta Meta) { public bool Success => false; }
+public record ApiError(ApiErrorBody Error, ApiMeta Meta) { public static bool Success => false; }
 
 public record ApiMeta(string RequestId, ApiPagination? Pagination = null);
 public record ApiPagination(int Page, int Size, long? Total = null, string? NextCursor = null);
