@@ -9,6 +9,13 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "docker-compose": {
+      "commandName": "Executable",
+      "executablePath": "docker",
+      "commandLineArgs": "compose -f docker-compose.yml up api",
+      "workingDirectory": "../../",
+      "launchBrowser": false
     }
   }
 }

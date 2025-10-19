@@ -1,0 +1,15 @@
+services:
+  api:
+    build:
+      context: .
+      target: development
+    working_dir: /src
+    volumes:
+      - ./:/src
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      DOTNET_WATCH_SUPPRESS_EMOJIS: "1"

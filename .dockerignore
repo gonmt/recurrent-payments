@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+.git
+.vscode
+.idea
+StrykerOutput
+coverage
+*.user
+*.suo
+*.swp
+Dockerfile
+docker-compose*.yml
