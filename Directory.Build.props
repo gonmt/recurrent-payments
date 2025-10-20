@@ -9,7 +9,7 @@
 
   <Target Name="Husky"
           BeforeTargets="Restore;CollectPackageReferences"
-          Condition="'$(HUSKY)' != 0 and '$(MSBuildProjectExtension)' == '.sln' and Exists('$(MSBuildThisFileDirectory).git')">
+          Condition="'$(HUSKY)' != 0 AND !Exists('$(MSBuildThisFileDirectory).husky/_/husky.sh')">
     <Exec Command="dotnet tool restore"
           StandardOutputImportance="Low"
           StandardErrorImportance="High"

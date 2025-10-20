@@ -41,7 +41,7 @@ public class ListUsersHandlerTests
 
         List<Dictionary<string, string>> filters = new()
         {
-            new() { ["email"] = "john" }
+            new() { ["field"] = "email", ["operator"] = "CONTAINS", ["value"] = "john" }
         };
         ListUsersResponse response = await handler.Find(filters);
 
@@ -63,7 +63,7 @@ public class ListUsersHandlerTests
 
         List<Dictionary<string, string>> filters = new()
         {
-            new() { ["fullName"] = "Jane" }
+            new() { ["field"] = "fullname", ["operator"] = "CONTAINS", ["value"] = "Jane" }
         };
         ListUsersResponse response = await handler.Find(filters);
 
@@ -85,7 +85,8 @@ public class ListUsersHandlerTests
 
         List<Dictionary<string, string>> filters = new()
         {
-            new() { ["email"] = "john", ["fullName"] = "John" }
+            new() { ["field"] = "email", ["operator"] = "CONTAINS", ["value"] = "john" },
+            new() { ["field"] = "fullname", ["operator"] = "CONTAINS", ["value"] = "John" }
         };
         ListUsersResponse response = await handler.Find(filters);
 
@@ -105,7 +106,7 @@ public class ListUsersHandlerTests
 
         List<Dictionary<string, string>> filters = new()
         {
-            new() { ["email"] = "nonexistent" }
+            new() { ["field"] = "email", ["operator"] = "CONTAINS", ["value"] = "nonexistent" }
         };
         ListUsersResponse response = await handler.Find(filters);
 
@@ -126,8 +127,8 @@ public class ListUsersHandlerTests
 
         List<Dictionary<string, string>> filters = new()
         {
-            new() { ["email"] = "john" },
-            new() { ["invalidField"] = "someValue" }
+            new() { ["field"] = "email", ["operator"] = "CONTAINS", ["value"] = "john" },
+            new() { ["field"] = "invalidField", ["operator"] = "CONTAINS", ["value"] = "someValue" }
         };
         ListUsersResponse response = await handler.Find(filters);
 
@@ -179,11 +180,11 @@ public class ListUsersHandlerTests
             {
                 foreach (Filter filter in criteria.Filters.Values)
                 {
-                    if (filter.Field.Value == "Email" && filter.Operator == FilterOperator.CONTAINS)
+                    if (filter.Field.Value.Equals("email", StringComparison.OrdinalIgnoreCase) && filter.Operator == FilterOperator.CONTAINS)
                     {
                         results = results.Where(u => u.Email.Value.Contains(filter.Value.Value, StringComparison.OrdinalIgnoreCase));
                     }
-                    else if (filter.Field.Value == "FullName" && filter.Operator == FilterOperator.CONTAINS)
+                    else if (filter.Field.Value.Equals("fullname", StringComparison.OrdinalIgnoreCase) && filter.Operator == FilterOperator.CONTAINS)
                     {
                         results = results.Where(u => u.FullName.Value.Contains(filter.Value.Value, StringComparison.OrdinalIgnoreCase));
                     }
