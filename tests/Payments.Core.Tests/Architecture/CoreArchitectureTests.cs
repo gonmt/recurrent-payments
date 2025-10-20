@@ -107,7 +107,10 @@ public class CoreArchitectureTests
                 .That()
                 .ResideInNamespaceStartingWith(layerNamespace)
                 .Should()
-                .OnlyHaveDependenciesOn("System", CoreNamespace)
+                .OnlyHaveDependenciesOn(
+                    "System",
+                    string.Empty,
+                    CoreNamespace)
                 .GetResult();
 
             Assert.True(

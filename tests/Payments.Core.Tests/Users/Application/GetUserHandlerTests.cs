@@ -1,5 +1,6 @@
 using Bogus;
 
+using Payments.Core.Shared.Domain.FiltersByCriteria;
 using Payments.Core.Shared.Domain.ValueObjects;
 using Payments.Core.Tests.Shared.Domain;
 using Payments.Core.Users.Application;
@@ -67,6 +68,12 @@ public class GetUserHandlerTests
         {
             User? user = _users.Values.FirstOrDefault(u => u.Email == email);
             return Task.FromResult(user);
+        }
+
+        public Task<IEnumerable<User>> Matching(Criteria criteria)
+        {
+            IEnumerable<User> results = _users.Values;
+            return Task.FromResult(results);
         }
 
         public Task Save(User user)

@@ -33,7 +33,7 @@ public sealed class UsersDbContext(DbContextOptions<UsersDbContext> options) : D
             .HasMaxLength(100)
             .IsRequired();
 
-        _ = user.Property(e => e.PasswordHash)
+        _ = user.Property<UserPasswordHash>("_passwordHash")
             .HasConversion(password => password.Value, hashed => UserPasswordHash.FromHash(hashed))
             .IsRequired();
 

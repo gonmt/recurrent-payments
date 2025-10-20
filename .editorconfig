@@ -12,6 +12,7 @@ trim_trailing_whitespace = true
 # ===== C# reglas =====
 [*.cs]
 # Suppress DI-related "never instantiated" and minimal API "unused handler" diagnostics
+dotnet_diagnostic.CA1051.severity = none
 dotnet_diagnostic.CA1716.severity = none
 dotnet_diagnostic.CA1812.severity = none
 dotnet_diagnostic.S1144.severity = none

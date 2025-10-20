@@ -5,33 +5,23 @@ namespace Payments.Core.Users.Domain;
 
 public class User
 {
-    public Uuid Id { get; private set; } = null!;
-    public EmailAddress Email { get; private set; } = null!;
-    public UserFullName FullName { get; private set; } = null!;
-    public UserPasswordHash PasswordHash { get; private set; } = null!;
-    public DateTimeOffset CreatedAt { get; private set; }
-
-    private User()
-    {
-        // Required by EF Core
-    }
+    public readonly Uuid Id;
+    public readonly EmailAddress Email;
+    public UserFullName FullName { get; private set; }
+    private UserPasswordHash _passwordHash;
+    public readonly DateTimeOffset CreatedAt;
 
     private User(Uuid id, EmailAddress email, UserFullName fullName, UserPasswordHash passwordHash, DateTimeOffset createdAt)
     {
         Id = id;
         Email = email;
         FullName = fullName;
-        PasswordHash = passwordHash;
+        _passwordHash = passwordHash;
         CreatedAt = createdAt;
     }
 
     public static User Create(Uuid id, EmailAddress email, UserFullName fullName, UserPasswordHash password)
     {
-        ArgumentNullException.ThrowIfNull(id);
-        ArgumentNullException.ThrowIfNull(email);
-        ArgumentNullException.ThrowIfNull(fullName);
-        ArgumentNullException.ThrowIfNull(password);
-
         return new User(
             id,
             email,
@@ -41,11 +31,7 @@ public class User
         );
     }
 
-    public void ChangePassword(UserPasswordHash newPassword)
-    {
-        ArgumentNullException.ThrowIfNull(newPassword);
-        PasswordHash = newPassword;
-    }
+    public void ChangePassword(UserPasswordHash newPassword) => _passwordHash = newPassword;
 
-    public bool VerifyPassword(string plainPassword, IHasher hasher) => PasswordHash.Verify(plainPassword, hasher);
+    public bool VerifyPassword(string plainPassword, IHasher hasher) => _passwordHash.Verify(plainPassword, hasher);
 }

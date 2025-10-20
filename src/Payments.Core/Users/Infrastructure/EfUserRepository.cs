@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 
+using Payments.Core.Shared.Domain.FiltersByCriteria;
 using Payments.Core.Shared.Domain.ValueObjects;
+using Payments.Core.Shared.Infrastructure.Persistence.EntityFramework.Criteria;
 using Payments.Core.Users.Domain;
 
 namespace Payments.Core.Users.Infrastructure;
@@ -11,6 +13,9 @@ public class EfUserRepository(UsersDbContext context) : IUserRepository
 
     public async Task<User?> FindByEmail(EmailAddress email) =>
         await context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+    public async Task<IEnumerable<User>> Matching(Criteria criteria) =>
+        await context.Users.SearchByCriteria(criteria).ToListAsync();
 
     public async Task Save(User user)
     {
