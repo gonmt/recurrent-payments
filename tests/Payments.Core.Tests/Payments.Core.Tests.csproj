@@ -4,6 +4,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- Enable parallel test execution -->
+    <EnableParallelTestExecution>true</EnableParallelTestExecution>
+    <!-- Maximum number of parallel threads (default is processor count) -->
+    <MaxParallelThreads>4</MaxParallelThreads>
   </PropertyGroup>
 
   <ItemGroup>

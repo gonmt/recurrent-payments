@@ -38,15 +38,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapApiEndpoints();
-
-using (IServiceScope scope = app.Services.CreateScope())
-{
-    IServiceProvider services = scope.ServiceProvider;
-    UsersDbContext context = services.GetRequiredService<UsersDbContext>();
-    IHasher hasher = services.GetRequiredService<IHasher>();
-    UsersDbContextSeeder.Seed(context, hasher);
-}
-
 await app.RunAsync();
 
 public partial class Program

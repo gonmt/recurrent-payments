@@ -1,16 +1,14 @@
 using System.Net.Http.Json;
 
-using Microsoft.AspNetCore.Mvc.Testing;
-
 using Payments.Api.IntegrationTests.Support;
 using Payments.Core.Users.Application;
 using Payments.Core.Users.Domain;
 
 namespace Payments.Api.IntegrationTests.Endpoints.Users;
 
-public class GetUserEndpointTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public class GetUserEndpointTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory = factory;
+    private readonly CustomWebApplicationFactory _factory = factory;
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]

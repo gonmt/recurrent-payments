@@ -1,6 +1,5 @@
 using Bogus;
 
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
 using Payments.Core.Shared.Domain;
@@ -14,7 +13,7 @@ internal static class IntegrationTestData
 {
     private static readonly Faker _faker = new();
 
-    internal static async Task<(User User, string Password)> CreateUser(WebApplicationFactory<Program> factory, string? passwordOverride = null)
+    internal static async Task<(User User, string Password)> CreateUser(CustomWebApplicationFactory factory, string? passwordOverride = null)
     {
         string password = passwordOverride ?? GenerateValidPassword();
         string email = _faker.Internet.Email();

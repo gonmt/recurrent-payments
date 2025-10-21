@@ -1,14 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 
-using Microsoft.AspNetCore.Mvc.Testing;
-
 using Payments.Api.IntegrationTests.Support;
 using Payments.Core.Users.Domain;
 
 namespace Payments.Api.IntegrationTests.Endpoints.Auth;
 
-public class LoginEndpointTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public class LoginEndpointTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly HttpClient _client = factory.CreateClient();
 
