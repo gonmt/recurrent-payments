@@ -114,6 +114,7 @@ jobs:
           --project "src/Payments.Core/Payments.Core.csproj" \
           --mutate "**/Domain/**/*.cs" \
           --reporter "html" \
+          --reporter "json" \
           --reporter "cleartext" \
           --break-at 0 \
           --threshold-low 40 \
@@ -148,33 +149,94 @@ jobs:
 
     - name: Generate quality summary
       run: |
-        echo "# 📊 Quality Report Summary" > quality-summary.md
-        echo "" >> quality-summary.md
+        SUMMARY_FILE="quality-summary.md"
+        STEP_SUMMARY_OUTPUT="${GITHUB_STEP_SUMMARY:-}"
+
+        append_line() {
+          printf '%s\n' "$1" >> "$SUMMARY_FILE"
+          if [ -n "$STEP_SUMMARY_OUTPUT" ]; then
+            printf '%s\n' "$1" >> "$STEP_SUMMARY_OUTPUT"
+          fi
+        }
+
+        append_blank() {
+          append_line ""
+        }
+
+        append_format() {
+          local format=$1
+          shift || true
+          local rendered
+          rendered=$(printf "$format" "$@")
+          append_line "$rendered"
+        }
+
+        : > "$SUMMARY_FILE"
+
+        append_line "# 📊 Quality Report Summary"
+        append_blank
 
         if [ -f "coverage/Summary.json" ]; then
           COVERAGE=$(jq -r '.summary.lineCoverage // empty' coverage/Summary.json || true)
           if [ -n "$COVERAGE" ]; then
-            echo "## 📈 Code Coverage" >> quality-summary.md
-            printf "**Coverage:** %.1f%%\n" "$COVERAGE" >> quality-summary.md
-            echo "" >> quality-summary.md
+            append_line "## 📈 Code Coverage"
+            append_format "**Total:** %.1f%%" "$COVERAGE"
+
+            ASSEMBLY_ROWS=$(jq -r '.assemblies[]? | select(.summary.lineCoverage != null) | "\(.name)|\(.summary.lineCoverage)"' coverage/Summary.json || true)
+            if [ -n "$ASSEMBLY_ROWS" ]; then
+              append_blank
+              append_line "| Project | Coverage |"
+              append_line "| --- | --- |"
+              while IFS='|' read -r NAME VALUE; do
+                [ -z "$NAME" ] && continue
+                append_format "| %s | %.1f%% |" "$NAME" "$VALUE"
+              done <<< "$ASSEMBLY_ROWS"
+            fi
+
+            append_blank
           fi
         fi
 
-        echo "## 🧪 Test Results" >> quality-summary.md
-        echo "**Total Tests:** $(find tests -name "*Test*.cs" -not -path "*bin*" -not -path "*obj*" | wc -l)" >> quality-summary.md
-        echo "**Status:** ✅ All Passed" >> quality-summary.md
-        echo "" >> quality-summary.md
+        append_line "## 🧪 Test Results"
+        append_line "**Total Tests:** $(find tests -name "*Test*.cs" -not -path "*bin*" -not -path "*obj*" | wc -l)"
+        append_line "**Status:** ✅ All Passed"
+        append_blank
 
-        echo "## 🛡️ Security" >> quality-summary.md
-        echo "**Status:** ✅ No Critical Vulnerabilities" >> quality-summary.md
-        echo "" >> quality-summary.md
+        append_line "## 🧬 Mutation Testing"
+        MUTATION_JSON=$(find StrykerOutput -name "mutation-report.json" -path "*/reports/*" -type f | sort | tail -n 1 || true)
+        if [ -n "$MUTATION_JSON" ] && [ -f "$MUTATION_JSON" ]; then
+          MUTATION_COUNTS=$(jq -r '
+            reduce (.files[]?.mutants[]? | .status // empty) as $status (
+              {total:0, killed:0, survived:0, noCoverage:0};
+              if $status == "Killed" then .total += 1 | .killed += 1
+              elif $status == "Survived" then .total += 1 | .survived += 1
+              elif $status == "NoCoverage" then .total += 1 | .noCoverage += 1
+              else .
+              end
+            ) | [.total, .killed, .survived, .noCoverage] | @tsv
+          ' "$MUTATION_JSON" || true)
 
-        echo "## 🧬 Mutation Testing" >> quality-summary.md
-        if [ -d "StrykerOutput" ] && [ "$(find StrykerOutput -name "mutation-report.html" -type f | wc -l)" -gt 0 ]; then
-          echo "**Status:** ✅ Report Generated" >> quality-summary.md
+          append_line "**Report:** ✅ Generated"
+
+          if [ -n "$MUTATION_COUNTS" ]; then
+            IFS=$'\t' read -r TOTAL KILLED SURVIVED NO_COVERAGE <<< "$MUTATION_COUNTS"
+            if [ "${TOTAL:-0}" != "0" ] || [ "${KILLED:-0}" != "0" ] || [ "${SURVIVED:-0}" != "0" ] || [ "${NO_COVERAGE:-0}" != "0" ]; then
+              append_blank
+              append_line "| Metric | Count |"
+              append_line "| --- | --- |"
+              [ -n "${TOTAL:-}" ] && append_line "| Total mutants | ${TOTAL:-0} |"
+              [ -n "${KILLED:-}" ] && append_line "| Killed | ${KILLED:-0} |"
+              [ -n "${SURVIVED:-}" ] && append_line "| Survived | ${SURVIVED:-0} |"
+              [ -n "${NO_COVERAGE:-}" ] && append_line "| No coverage | ${NO_COVERAGE:-0} |"
+            fi
+          fi
         else
-          echo "**Status:** ❌ Failed to Generate Report" >> quality-summary.md
+          append_line "**Report:** ❌ Not found"
         fi
+        append_blank
+
+        append_line "## 🛡️ Security"
+        append_line "**Status:** ⚠️ Not evaluated (placeholder step)"
 
     - name: Upload quality summary
       uses: actions/upload-artifact@v4
@@ -188,6 +250,7 @@ jobs:
       with:
         script: |
           const fs = require('fs');
+          const path = require('path');
 
           // Read quality summary
           let summary = "## 📊 Quality Check Results\n\n";
@@ -201,19 +264,77 @@ jobs:
           }
 
           summary += `✅ **Tests:** All passed\n`;
-          summary += `🛡️ **Security:** No critical issues\n`;
-          summary += `🧬 **Mutation:** `;
-          try {
-            const reports = fs.readdirSync('StrykerOutput', { recursive: true });
-            const mutationReport = reports.find(file => file.endsWith('mutation-report.html'));
-            if (mutationReport) {
-              summary += `✅ Analysis completed\n\n`;
-            } else {
-              summary += `❌ Failed to complete\n\n`;
+
+          const resolveLatestMutationReport = () => {
+            if (!fs.existsSync('StrykerOutput')) {
+              return undefined;
             }
-          } catch (error) {
-            summary += `❌ Failed to complete\n\n`;
+
+            const candidates = [];
+            const queue = ['StrykerOutput'];
+            while (queue.length) {
+              const current = queue.pop();
+              const entries = fs.readdirSync(current, { withFileTypes: true });
+              for (const entry of entries) {
+                const entryPath = path.join(current, entry.name);
+                if (entry.isDirectory()) {
+                  queue.push(entryPath);
+                } else if (entry.isFile() && entry.name === 'mutation-report.json') {
+                  candidates.push(entryPath);
+                }
+              }
+            }
+
+            if (!candidates.length) {
+              return undefined;
+            }
+
+            candidates.sort();
+            return candidates[candidates.length - 1];
+          };
+
+          const mutationReportPath = resolveLatestMutationReport();
+          if (mutationReportPath) {
+            try {
+              const mutationData = JSON.parse(fs.readFileSync(mutationReportPath, 'utf8'));
+              const files = mutationData?.files ?? {};
+              let killed = 0;
+              let survived = 0;
+              let noCoverage = 0;
+              let total = 0;
+
+              for (const file of Object.values(files)) {
+                for (const mutant of file?.mutants ?? []) {
+                  switch (mutant?.status) {
+                    case 'Killed':
+                      killed += 1;
+                      total += 1;
+                      break;
+                    case 'Survived':
+                      survived += 1;
+                      total += 1;
+                      break;
+                    case 'NoCoverage':
+                      noCoverage += 1;
+                      total += 1;
+                      break;
+                  }
+                }
+              }
+
+              if (total > 0 || killed > 0 || survived > 0 || noCoverage > 0) {
+                summary += `🧬 **Mutation:** Killed ${killed}, Survived ${survived}, No coverage ${noCoverage} (Total ${total})\n`;
+              } else {
+                summary += `🧬 **Mutation:** ✅ Analysis completed\n`;
+              }
+            } catch (error) {
+              summary += `🧬 **Mutation:** ❌ Unable to read report\n`;
+            }
+          } else {
+            summary += `🧬 **Mutation:** ❌ Report unavailable\n`;
           }
+
+          summary += `🛡️ **Security:** ⚠️ Not evaluated (placeholder)\n\n`;
 
           summary += `📊 [View detailed reports](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
 
