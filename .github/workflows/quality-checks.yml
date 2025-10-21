@@ -46,10 +46,29 @@ jobs:
 
     - name: Run tests with coverage
       run: |
-        dotnet test ${{ env.SOLUTION_FILE }} \
+        echo "🧪 Running unit tests with coverage..."
+        # Run unit tests without architecture tests (NetArchTest conflicts with coverage collector)
+        dotnet test tests/Payments.Core.Tests/Payments.Core.Tests.csproj \
           --no-build \
           --configuration Release \
-          --logger "trx;LogFileName=test_results.trx" \
+          --filter "Category!=Architecture" \
+          --logger "trx;LogFileName=core_test_results.trx" \
+          --collect:"XPlat Code Coverage"
+
+        echo "🏗️ Running architecture tests..."
+        # Run architecture tests separately (without coverage due to NetArchTest compatibility)
+        dotnet test tests/Payments.Core.Tests/Payments.Core.Tests.csproj \
+          --no-build \
+          --configuration Release \
+          --filter "Category=Architecture" \
+          --logger "trx;LogFileName=architecture_test_results.trx"
+
+        echo "🔌 Running integration tests with coverage..."
+        # Run integration tests with coverage
+        dotnet test tests/Payments.Api.IntegrationTests/Payments.Api.IntegrationTests.csproj \
+          --no-build \
+          --configuration Release \
+          --logger "trx;LogFileName=integration_test_results.trx" \
           --collect:"XPlat Code Coverage"
 
     - name: Upload test results

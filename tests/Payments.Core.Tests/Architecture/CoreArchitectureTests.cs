@@ -8,7 +8,7 @@ namespace Payments.Core.Tests.Architecture;
 public class CoreArchitectureTests
 {
     private const string CoreNamespace = "Payments.Core";
-    private static readonly Assembly _coreAssembly = typeof(Payments.Core.AssemblyReference).Assembly;
+    private static readonly Assembly _coreAssembly = AssemblyReference.Assembly;
 
     [Fact]
     public void ModulesShouldOnlyDependOnThemselvesOrShared()
