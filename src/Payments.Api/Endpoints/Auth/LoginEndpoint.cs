@@ -17,8 +17,6 @@ public sealed class LoginEndpoint : IApiEndpoint
         AuthenticateUserHandler authenticateUserHandler,
         GenerateTokenHandler generateTokenHandler)
     {
-        ArgumentNullException.ThrowIfNull(request);
-
         FluentValidation.Results.ValidationResult validationResult = await validator.ValidateAsync(request);
 
 

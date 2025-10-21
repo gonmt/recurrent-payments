@@ -13,24 +13,12 @@ public abstract record class StringValueObject
         validator ??= static _ => { };
 
         string normalized = normalizer(value);
-        if (normalized is null)
-        {
-            throw new ArgumentNullException(nameof(value));
-        }
 
         Value = normalized;
         validator(Value);
     }
 
-    private static string DefaultNormalize(string v)
-    {
-        if (v is null)
-        {
-            throw new ArgumentNullException(nameof(v));
-        }
-
-        return v.Trim();
-    }
+    private static string DefaultNormalize(string v) => v.Trim();
 
     public override string ToString() => Value;
 
