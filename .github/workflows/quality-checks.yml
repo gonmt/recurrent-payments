@@ -168,7 +168,7 @@ jobs:
         echo "" >> quality-summary.md
 
         echo "## 🧬 Mutation Testing" >> quality-summary.md
-        if ls StrykerOutput/*/reports/mutation-report.html 1> /dev/null 2>&1; then
+        if [ -d "StrykerOutput" ] && [ "$(find StrykerOutput -name "mutation-report.html" -type f | wc -l)" -gt 0 ]; then
           echo "**Status:** ✅ Report Generated" >> quality-summary.md
         else
           echo "**Status:** ❌ Failed to Generate Report" >> quality-summary.md
