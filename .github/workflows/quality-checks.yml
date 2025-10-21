@@ -152,6 +152,8 @@ jobs:
         SUMMARY_FILE="quality-summary.md"
         STEP_SUMMARY_OUTPUT="${GITHUB_STEP_SUMMARY:-}"
 
+        export LC_ALL=C
+
         append_line() {
           printf '%s\n' "$1" >> "$SUMMARY_FILE"
           if [ -n "$STEP_SUMMARY_OUTPUT" ]; then
@@ -177,12 +179,12 @@ jobs:
         append_blank
 
         if [ -f "coverage/Summary.json" ]; then
-          COVERAGE=$(jq -r '.summary.lineCoverage // empty' coverage/Summary.json || true)
+          COVERAGE=$(jq -r '.summary.linecoverage // .summary.lineCoverage // empty' coverage/Summary.json || true)
           if [ -n "$COVERAGE" ]; then
             append_line "## 📈 Code Coverage"
             append_format "**Total:** %.1f%%" "$COVERAGE"
 
-            ASSEMBLY_ROWS=$(jq -r '.assemblies[]? | select(.summary.lineCoverage != null) | "\(.name)|\(.summary.lineCoverage)"' coverage/Summary.json || true)
+            ASSEMBLY_ROWS=$(jq -r '.coverage.assemblies[]? | select(.coverage != null) | "\(.name)|\(.coverage)"' coverage/Summary.json || true)
             if [ -n "$ASSEMBLY_ROWS" ]; then
               append_blank
               append_line "| Project | Coverage |"
@@ -257,9 +259,22 @@ jobs:
 
           if (fs.existsSync('coverage/Summary.json')) {
             const coverageData = JSON.parse(fs.readFileSync('coverage/Summary.json', 'utf8'));
-            const lineCoverage = coverageData?.summary?.lineCoverage;
+            const lineCoverage = coverageData?.summary?.linecoverage ?? coverageData?.summary?.lineCoverage;
             if (typeof lineCoverage === 'number') {
-              summary += `📈 **Coverage:** ${lineCoverage.toFixed(1)}%\n\n`;
+              summary += `📈 **Coverage:** ${lineCoverage.toFixed(1)}%\n`;
+            }
+
+            const assemblies = coverageData?.coverage?.assemblies ?? [];
+            if (assemblies.length) {
+              summary += `\n| Project | Coverage |\n| --- | --- |\n`;
+              for (const assembly of assemblies) {
+                if (typeof assembly?.coverage === 'number' && assembly?.name) {
+                  summary += `| ${assembly.name} | ${assembly.coverage.toFixed(1)}% |\n`;
+                }
+              }
+              summary += `\n`;
+            } else if (typeof lineCoverage === 'number') {
+              summary += `\n`;
             }
           }
 
