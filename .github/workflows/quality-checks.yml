@@ -143,8 +143,8 @@ jobs:
       with:
         name: mutation-report
         path: |
-          '**/StrykerOutput/**/reports'
-          '**/mutation-report.html'
+          StrykerOutput/**/reports/
+          StrykerOutput/**/*.html
 
     - name: Generate quality summary
       run: |
@@ -168,7 +168,7 @@ jobs:
         echo "" >> quality-summary.md
 
         echo "## 🧬 Mutation Testing" >> quality-summary.md
-        if find StrykerOutput -name "mutation-report.html" -type f | head -1 | xargs test -f; then
+        if [ -n "$(find StrykerOutput -name 'mutation-report.html' -type f 2>/dev/null | head -1)" ]; then
           echo "**Status:** ✅ Report Generated" >> quality-summary.md
         else
           echo "**Status:** ❌ Failed to Generate Report" >> quality-summary.md
@@ -198,9 +198,15 @@ jobs:
           summary += `✅ **Tests:** All passed\n`;
           summary += `🛡️ **Security:** No critical issues\n`;
           summary += `🧬 **Mutation:** `;
-          if (find StrykerOutput -name "mutation-report.html" -type f | head -1 | xargs test -f) {
-            summary += `✅ Analysis completed\n\n`;
-          } else {
+          try {
+            const reports = fs.readdirSync('StrykerOutput', { recursive: true });
+            const mutationReport = reports.find(file => file.endsWith('mutation-report.html'));
+            if (mutationReport) {
+              summary += `✅ Analysis completed\n\n`;
+            } else {
+              summary += `❌ Failed to complete\n\n`;
+            }
+          } catch (error) {
             summary += `❌ Failed to complete\n\n`;
           }
 
