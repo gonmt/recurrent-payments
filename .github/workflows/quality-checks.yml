@@ -152,10 +152,12 @@ jobs:
         echo "" >> quality-summary.md
 
         if [ -f "coverage/Summary.json" ]; then
-          COVERAGE=$(cat coverage/Summary.json | grep -o '"coveragePercent":[0-9.]*' | grep -o '[0-9.]*')
-          echo "## 📈 Code Coverage" >> quality-summary.md
-          echo "**Coverage:** ${COVERAGE}%" >> quality-summary.md
-          echo "" >> quality-summary.md
+          COVERAGE=$(jq -r '.summary.lineCoverage // empty' coverage/Summary.json || true)
+          if [ -n "$COVERAGE" ]; then
+            echo "## 📈 Code Coverage" >> quality-summary.md
+            printf "**Coverage:** %.1f%%\n" "$COVERAGE" >> quality-summary.md
+            echo "" >> quality-summary.md
+          fi
         fi
 
         echo "## 🧪 Test Results" >> quality-summary.md
@@ -192,7 +194,10 @@ jobs:
 
           if (fs.existsSync('coverage/Summary.json')) {
             const coverageData = JSON.parse(fs.readFileSync('coverage/Summary.json', 'utf8'));
-            summary += `📈 **Coverage:** ${coverageData.coveragePercent.toFixed(1)}%\n\n`;
+            const lineCoverage = coverageData?.summary?.lineCoverage;
+            if (typeof lineCoverage === 'number') {
+              summary += `📈 **Coverage:** ${lineCoverage.toFixed(1)}%\n\n`;
+            }
           }
 
           summary += `✅ **Tests:** All passed\n`;
