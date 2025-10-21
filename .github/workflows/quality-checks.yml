@@ -9,6 +9,7 @@ on:
 env:
   DOTNET_VERSION: '9.0.x'
   SOLUTION_FILE: 'Payments.Recurring.sln'
+  HUSKY: 0
 
 jobs:
   quality-checks:
