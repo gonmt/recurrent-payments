@@ -98,26 +98,53 @@ jobs:
       run: |
         echo "Running security analysis with built-in analyzers..."
 
-    - name: Run mutation testing (sample)
+    - name: Run mutation testing
       run: |
-        echo "Running limited mutation testing..."
-        # Only run on Core.Tests to save time
-        if [ -d "tests/Payments.Core.Tests" ]; then
-          dotnet tool restore
-          dotnet stryker \
-            --project "tests/Payments.Core.Tests/Payments.Core.Tests.csproj" \
-            --reporters "html;cleartext" \
-            --threshold-break 0 \
-            --threshold-low 40 \
-            --threshold-high 60
+        echo "Running mutation testing..."
+        if [ ! -d "tests/Payments.Core.Tests" ]; then
+          echo "❌ Core.Tests not found"
+          exit 1
         fi
+
+        dotnet tool restore
+
+        # Run Stryker and fail the pipeline if it doesn't execute properly
+        if ! dotnet stryker \
+          --test-project "tests/Payments.Core.Tests/Payments.Core.Tests.csproj" \
+          --project "src/Payments.Core/Payments.Core.csproj" \
+          --mutate "**/Domain/**/*.cs" \
+          --reporter "html" \
+          --reporter "cleartext" \
+          --break-at 0 \
+          --threshold-low 40 \
+          --threshold-high 60 \
+          --verbosity info; then
+          echo "❌ Stryker failed to execute properly"
+          exit 1
+        fi
+
+        # Check if mutation report was generated
+        if ! find StrykerOutput -name "mutation-report.html" -type f | head -1 | xargs test -f; then
+          echo "❌ No mutation report was generated"
+          exit 1
+        fi
+
+        # Show mutation score if available
+        REPORT_PATH=$(find StrykerOutput -name "mutation-report.html" -type f | head -1)
+        if [ -n "$REPORT_PATH" ]; then
+          echo "📊 Mutation report generated at: $REPORT_PATH"
+        fi
+
+        echo "✅ Mutation testing completed successfully"
 
     - name: Upload mutation report
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: mutation-report
-        path: '**/StrykerOutput/**/reports'
+        path: |
+          '**/StrykerOutput/**/reports'
+          '**/mutation-report.html'
 
     - name: Generate quality summary
       run: |
@@ -141,10 +168,10 @@ jobs:
         echo "" >> quality-summary.md
 
         echo "## 🧬 Mutation Testing" >> quality-summary.md
-        if [ -f "**/mutation-report.json" ]; then
-          echo "**Status:** Report Generated" >> quality-summary.md
+        if find StrykerOutput -name "mutation-report.html" -type f | head -1 | xargs test -f; then
+          echo "**Status:** ✅ Report Generated" >> quality-summary.md
         else
-          echo "**Status:** Limited Analysis" >> quality-summary.md
+          echo "**Status:** ❌ Failed to Generate Report" >> quality-summary.md
         fi
 
     - name: Upload quality summary
@@ -170,7 +197,12 @@ jobs:
 
           summary += `✅ **Tests:** All passed\n`;
           summary += `🛡️ **Security:** No critical issues\n`;
-          summary += `🧬 **Mutation:** Analysis completed\n\n`;
+          summary += `🧬 **Mutation:** `;
+          if (find StrykerOutput -name "mutation-report.html" -type f | head -1 | xargs test -f) {
+            summary += `✅ Analysis completed\n\n`;
+          } else {
+            summary += `❌ Failed to complete\n\n`;
+          }
 
           summary += `📊 [View detailed reports](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
 
