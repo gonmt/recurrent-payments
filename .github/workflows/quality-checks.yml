@@ -44,6 +44,9 @@ jobs:
     - name: Verify code format
       run: dotnet format --verify-no-changes ${{ env.SOLUTION_FILE }}
 
+    - name: Roslynator analyze
+      run: dotnet tool run roslynator -- analyze ${{ env.SOLUTION_FILE }} --severity-level warning --properties "WarningsAsErrors=true"
+
     - name: Build solution
       run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
 

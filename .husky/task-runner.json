@@ -12,23 +12,45 @@
             }
         },
         {
-            "name": "build",
-            "group": "pre-commit",
-            "command": "dotnet",
-            "args": ["build", "--no-restore", "--verbosity", "quiet"],
-            "windows": {
-                "command": "dotnet",
-                "args": ["build", "--no-restore", "--verbosity", "quiet"]
-            }
-        },
-        {
             "name": "analyze",
             "group": "pre-commit",
             "command": "dotnet",
-            "args": ["build", "--no-restore", "--verbosity", "quiet", "/p:RunAnalyzers=true"],
+            "args": ["build", "--no-restore", "--verbosity", "quiet", "/p:RunAnalyzers=true", "-warnaserror"],
             "windows": {
                 "command": "dotnet",
-                "args": ["build", "--no-restore", "--verbosity", "quiet", "/p:RunAnalyzers=true"]
+                "args": ["build", "--no-restore", "--verbosity", "quiet", "/p:RunAnalyzers=true", "-warnaserror"]
+            }
+        },
+        {
+            "name": "roslynator-analyze",
+            "group": "pre-commit",
+            "command": "dotnet",
+            "args": [
+                "tool",
+                "run",
+                "roslynator",
+                "--",
+                "analyze",
+                "Payments.Recurring.sln",
+                "--severity-level",
+                "warning",
+                "--properties",
+                "WarningsAsErrors=true"
+            ],
+            "windows": {
+                "command": "dotnet",
+                "args": [
+                    "tool",
+                    "run",
+                    "roslynator",
+                    "--",
+                    "analyze",
+                    "Payments.Recurring.sln",
+                    "--severity-level",
+                    "warning",
+                    "--properties",
+                    "WarningsAsErrors=true"
+                ]
             }
         },
         {

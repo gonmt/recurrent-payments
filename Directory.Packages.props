@@ -30,5 +30,6 @@
     <!-- Analysis Packages -->
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0" />
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.15.0.120848" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.14.0" />
   </ItemGroup>
 </Project>

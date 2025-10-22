@@ -37,6 +37,9 @@ dotnet_diagnostic.IDE0008.severity = warning
 csharp_prefer_braces = true:warning
 csharp_new_line_before_open_brace = all
 csharp_new_line_between_query_expression_clauses = true
+dotnet_diagnostic.IDE0011.severity = warning
+dotnet_diagnostic.RCS1001.severity = warning
+dotnet_diagnostic.RCS1037.severity = warning
 
 # namespaces en formato file-scoped para evitar llaves envolviendo la clase
 csharp_style_namespace_declarations = file_scoped:warning
