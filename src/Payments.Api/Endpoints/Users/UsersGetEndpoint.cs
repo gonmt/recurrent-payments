@@ -16,7 +16,7 @@ public class UsersGetEndpoint : IApiEndpoint
         ListUsersResponse response = await listUsersHandler.Find(queryProcessor.Filters, queryProcessor.Limit, queryProcessor.Offset);
 
         ApiPagination? pagination = queryProcessor.Limit.HasValue
-            ? new ApiPagination(queryProcessor.Offset.GetValueOrDefault(0) / queryProcessor.Limit.Value + 1, queryProcessor.Limit.Value, response.Total)
+            ? new ApiPagination(((queryProcessor.Offset ?? 0) / queryProcessor.Limit.Value) + 1, queryProcessor.Limit.Value, response.Total)
             : null;
 
         return ApiResponses.OkResponse(ctx, response, pagination);

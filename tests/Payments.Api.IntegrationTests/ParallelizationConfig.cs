@@ -1,5 +1,7 @@
 namespace Payments.Api.IntegrationTests;
 
-// Integration tests typically run sequentially to avoid database conflicts
+/// <summary>
+/// Integration tests typically run sequentially to avoid database conflicts
+/// </summary>
 [CollectionDefinition("Integration Tests", DisableParallelization = true)]
-public class IntegrationTestsGroup { }
+public class IntegrationTestsGroup;

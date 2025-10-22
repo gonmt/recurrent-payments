@@ -124,8 +124,7 @@ public class CoreArchitectureTests
         return _coreAssembly
             .GetTypes()
             .Select(type => type.Namespace)
-            .Where(ns => ns is not null &&
-                         ns.StartsWith($"{CoreNamespace}.", StringComparison.Ordinal))
+            .Where(ns => ns?.StartsWith($"{CoreNamespace}.", StringComparison.Ordinal) == true)
             .Select(ns => ns!.Split('.', StringSplitOptions.RemoveEmptyEntries))
             .Where(parts => parts.Length >= 3)
             .Select(parts => parts[2])
@@ -145,7 +144,6 @@ public class CoreArchitectureTests
         Type[] types = _coreAssembly.GetTypes();
         return Array.Exists(
             types,
-            type => type.Namespace is not null &&
-                    type.Namespace.StartsWith(namespacePrefix, StringComparison.Ordinal));
+            type => type.Namespace?.StartsWith(namespacePrefix, StringComparison.Ordinal) == true);
     }
 }

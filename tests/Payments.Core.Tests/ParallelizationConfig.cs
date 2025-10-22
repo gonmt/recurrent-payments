@@ -1,9 +1,13 @@
 namespace Payments.Core.Tests;
 
-// Collection for tests that can run in parallel
+/// <summary>
+/// Collection for tests that can run in parallel
+/// </summary>
 [CollectionDefinition("Parallel Tests", DisableParallelization = false)]
-public class ParallelTestsGroup { }
+public class ParallelTestsGroup;
 
-// Collection for tests that must run sequentially (if needed)
+/// <summary>
+/// Collection for tests that must run sequentially (if needed)
+/// </summary>
 [CollectionDefinition("Sequential Tests", DisableParallelization = true)]
-public class SequentialTestsGroup { }
+public class SequentialTestsGroup;

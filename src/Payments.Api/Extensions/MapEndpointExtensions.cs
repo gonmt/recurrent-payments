@@ -22,9 +22,7 @@ public static class MapEndpointExtensions
 
     public static WebApplication MapApiEndpoints(this WebApplication app)
     {
-        IEnumerable<IApiEndpoint> endpoints = app.Services.GetRequiredService<IEnumerable<IApiEndpoint>>();
-
-        foreach (IApiEndpoint endpoint in endpoints)
+        foreach (IApiEndpoint endpoint in app.Services.GetRequiredService<IEnumerable<IApiEndpoint>>())
         {
             endpoint.MapEndpoint(app);
         }

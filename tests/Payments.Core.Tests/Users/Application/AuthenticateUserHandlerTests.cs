@@ -60,7 +60,10 @@ public class AuthenticateUserHandlerTests : UsersTestBase
     {
         public InMemoryRepository(User? user = null)
         {
-            if (user != null) base.Save(user).Wait();
+            if (user != null)
+            {
+                base.Save(user).Wait();
+            }
         }
     }
 }

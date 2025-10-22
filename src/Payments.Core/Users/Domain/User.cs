@@ -3,11 +3,11 @@ using Payments.Core.Shared.Domain.ValueObjects;
 
 namespace Payments.Core.Users.Domain;
 
-public class User
+public sealed class User
 {
     public readonly Uuid Id;
     public readonly EmailAddress Email;
-    public UserFullName FullName { get; private set; }
+    public UserFullName FullName { get; }
     private UserPasswordHash _passwordHash;
     public readonly DateTimeOffset CreatedAt;
 

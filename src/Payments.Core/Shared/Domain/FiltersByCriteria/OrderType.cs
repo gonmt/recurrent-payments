@@ -2,7 +2,7 @@ namespace Payments.Core.Shared.Domain.FiltersByCriteria;
 
 public enum OrderType
 {
-    ASC,
-    DESC,
-    NONE
+    ASC = 0,
+    DESC = 1,
+    NONE = 2
 }

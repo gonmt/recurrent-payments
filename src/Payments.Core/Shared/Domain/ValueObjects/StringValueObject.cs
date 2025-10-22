@@ -12,9 +12,7 @@ public abstract record class StringValueObject
         normalizer ??= DefaultNormalize;
         validator ??= static _ => { };
 
-        string normalized = normalizer(value);
-
-        Value = normalized;
+        Value = normalizer(value);
         validator(Value);
     }
 

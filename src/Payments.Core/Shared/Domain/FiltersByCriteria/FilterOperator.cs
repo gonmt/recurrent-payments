@@ -2,14 +2,14 @@ namespace Payments.Core.Shared.Domain.FiltersByCriteria;
 
 public enum FilterOperator
 {
-    EQUAL,
-    NOTEQUAL,
-    GT,
-    GTE,
-    LT,
-    LTE,
-    CONTAINS,
-    NOTCONTAINS
+    EQUAL = 0,
+    NOTEQUAL = 1,
+    GT = 2,
+    GTE = 3,
+    LT = 4,
+    LTE = 5,
+    CONTAINS = 6,
+    NOTCONTAINS = 7
 }
 
 public static class FilterOperatorExtensions

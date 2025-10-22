@@ -12,7 +12,7 @@ public static class AuthenticationMother
     public static (User User, FakeHasher Hasher, string Password) SuccessfulAuthenticationScenario()
     {
         FakeHasher hasher = new();
-        string password = ValidPassword;
+        const string password = ValidPassword;
         User user = UserMother.RandomWith(hasher: hasher);
 
         return (user, hasher, password);
@@ -21,8 +21,8 @@ public static class AuthenticationMother
     public static (FakeHasher Hasher, string Email, string Password) UserNotExistsScenario()
     {
         FakeHasher hasher = new();
-        string email = "nonexistent@example.com";
-        string password = ValidPassword;
+        const string email = "nonexistent@example.com";
+        const string password = ValidPassword;
 
         return (hasher, email, password);
     }
@@ -30,7 +30,7 @@ public static class AuthenticationMother
     public static (User User, FakeHasher Hasher, string Password) HasherFailureScenario()
     {
         FakeHasher hasher = new(verifyFunc: (_, _) => false);
-        string password = ValidPassword;
+        const string password = ValidPassword;
         User user = UserMother.RandomWith(hasher: hasher);
 
         return (user, hasher, password);

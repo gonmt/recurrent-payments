@@ -32,8 +32,6 @@
                 "--",
                 "analyze",
                 "Payments.Recurring.sln",
-                "--severity-level",
-                "warning",
                 "--properties",
                 "WarningsAsErrors=true"
             ],
@@ -46,8 +44,6 @@
                     "--",
                     "analyze",
                     "Payments.Recurring.sln",
-                    "--severity-level",
-                    "warning",
                     "--properties",
                     "WarningsAsErrors=true"
                 ]
