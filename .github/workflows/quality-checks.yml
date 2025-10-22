@@ -38,6 +38,9 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_FILE }}
 
+    - name: Restore .NET tools
+      run: dotnet tool restore
+
     - name: Verify code format
       run: dotnet format --verify-no-changes ${{ env.SOLUTION_FILE }}
 
@@ -82,8 +85,7 @@ jobs:
 
     - name: Generate coverage report
       run: |
-        dotnet tool install --global dotnet-reportgenerator-globaltool
-        reportgenerator \
+        dotnet tool run reportgenerator \
           -reports:"**/coverage.cobertura.xml" \
           -targetdir:"coverage" \
           -reporttypes:"Html;Badges;Cobertura;JsonSummary"
@@ -105,8 +107,6 @@ jobs:
           echo "❌ Core.Tests not found"
           exit 1
         fi
-
-        dotnet tool restore
 
         # Run Stryker and fail the pipeline if it doesn't execute properly
         if ! dotnet stryker \
