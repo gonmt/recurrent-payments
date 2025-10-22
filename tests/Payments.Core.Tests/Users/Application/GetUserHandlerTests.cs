@@ -1,25 +1,25 @@
-using Bogus;
-
-using Payments.Core.Shared.Domain.FiltersByCriteria;
 using Payments.Core.Shared.Domain.ValueObjects;
-using Payments.Core.Tests.Shared.Domain;
+using Payments.Core.Tests.Users.TestObjects;
 using Payments.Core.Users.Application;
 using Payments.Core.Users.Domain;
 
 namespace Payments.Core.Tests.Users.Application;
 
-public class GetUserHandlerTests
+public class GetUserHandlerTests : UsersTestBase
 {
     [Fact]
     public async Task FindWhenUserExistsShouldReturnResponse()
     {
+        // Arrange - Usando Object Mother para crear un usuario predefinido
         FakeUserRepository repository = new();
-        User user = CreateUser();
+        User user = UserMother.Random();
         await repository.Save(user);
         GetUserHandler handler = new(repository);
 
+        // Act
         GetUserResponse? response = await handler.Find(user.Id.Value);
 
+        // Assert
         Assert.NotNull(response);
         Assert.Equal(user.Id.Value, response.Id);
         Assert.Equal(user.Email.Value, response.Email);
@@ -40,46 +40,14 @@ public class GetUserHandlerTests
         Assert.Equal(new[] { missingId }, repository.FindCalls);
     }
 
-    private static User CreateUser()
+    private sealed class FakeUserRepository : TestUserRepositoryBase
     {
-        Faker faker = new();
-        FakeHasher hasher = new();
-        Uuid id = Uuid.New();
-        EmailAddress email = new(faker.Internet.Email());
-        UserFullName fullName = new(faker.Name.FullName());
-        UserPasswordHash password = UserPasswordHash.Create("Valid12!", hasher);
-
-        return User.Create(id, email, fullName, password);
-    }
-
-    private sealed class FakeUserRepository : IUserRepository
-    {
-        private readonly Dictionary<Uuid, User> _users = new();
         public List<Uuid> FindCalls { get; } = new();
 
-        public Task<User?> Find(Uuid id)
+        public override Task<User?> Find(Uuid id)
         {
             FindCalls.Add(id);
-            _users.TryGetValue(id, out User? user);
-            return Task.FromResult(user);
-        }
-
-        public Task<User?> FindByEmail(EmailAddress email)
-        {
-            User? user = _users.Values.FirstOrDefault(u => u.Email == email);
-            return Task.FromResult(user);
-        }
-
-        public Task<IEnumerable<User>> Matching(Criteria criteria)
-        {
-            IEnumerable<User> results = _users.Values;
-            return Task.FromResult(results);
-        }
-
-        public Task Save(User user)
-        {
-            _users[user.Id] = user;
-            return Task.CompletedTask;
+            return base.Find(id);
         }
     }
 }

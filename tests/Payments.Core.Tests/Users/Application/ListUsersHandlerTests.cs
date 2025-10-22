@@ -1,40 +1,43 @@
-using Bogus;
-
 using Payments.Core.Shared.Domain.FiltersByCriteria;
 using Payments.Core.Shared.Domain.ValueObjects;
-using Payments.Core.Tests.Shared.Domain;
+using Payments.Core.Tests.Users.TestObjects;
 using Payments.Core.Users.Application.List;
 using Payments.Core.Users.Domain;
 
 namespace Payments.Core.Tests.Users.Application;
 
-public class ListUsersHandlerTests
+public class ListUsersHandlerTests : UsersTestBase
 {
     [Fact]
     public async Task FindWhenNoFiltersShouldReturnAllUsers()
     {
+        // Arrange - Usando Object Mother para crear múltiples usuarios
         FakeUserRepository repository = new();
-        User user1 = CreateUser();
-        User user2 = CreateUser();
-        await repository.Save(user1);
-        await repository.Save(user2);
+        List<User> users = UserMother.RandomMultiple(2);
+        foreach (User user in users)
+        {
+            await repository.Save(user);
+        }
         ListUsersHandler handler = new(repository);
 
+        // Act
         ListUsersResponse response = await handler.Find(new List<Dictionary<string, string>>());
 
+        // Assert
         Assert.NotNull(response);
         Assert.Equal(2, response.Users.Count);
         Assert.Equal(2, response.Total);
-        Assert.Contains(response.Users, u => u.Id == user1.Id.Value);
-        Assert.Contains(response.Users, u => u.Id == user2.Id.Value);
+        Assert.Contains(response.Users, u => u.Id == users[0].Id.Value);
+        Assert.Contains(response.Users, u => u.Id == users[1].Id.Value);
     }
 
     [Fact]
     public async Task FindWhenEmailFilterShouldReturnFilteredUsers()
     {
+        // Arrange - Usando Object Mother para usuarios específicos para filtrado
         FakeUserRepository repository = new();
-        User user1 = CreateUser(email: "john.doe@example.com");
-        User user2 = CreateUser(email: "jane.smith@example.com");
+        User user1 = UserMother.RandomWith(email: "john.wick@example.com"); // email contiene "john"
+        User user2 = UserMother.Random(); // email aleatorio no contiene "john"
         await repository.Save(user1);
         await repository.Save(user2);
         ListUsersHandler handler = new(repository);
@@ -43,8 +46,11 @@ public class ListUsersHandlerTests
         {
             new() { ["field"] = "email", ["operator"] = "CONTAINS", ["value"] = "john" }
         };
+
+        // Act
         ListUsersResponse response = await handler.Find(filters);
 
+        // Assert
         Assert.NotNull(response);
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
@@ -54,9 +60,10 @@ public class ListUsersHandlerTests
     [Fact]
     public async Task FindWhenFullNameFilterShouldReturnFilteredUsers()
     {
+        // Arrange - Usando Object Mother para usuarios específicos para filtrado por nombre
         FakeUserRepository repository = new();
-        User user1 = CreateUser(fullName: "John Doe");
-        User user2 = CreateUser(fullName: "Jane Smith");
+        User user1 = UserMother.Random(); // nombre aleatorio no contiene "Jane"
+        User user2 = UserMother.RandomWith(email: "jane@example.com", fullName: "Jane Austen"); // nombre contiene "Jane"
         await repository.Save(user1);
         await repository.Save(user2);
         ListUsersHandler handler = new(repository);
@@ -65,8 +72,11 @@ public class ListUsersHandlerTests
         {
             new() { ["field"] = "fullname", ["operator"] = "CONTAINS", ["value"] = "Jane" }
         };
+
+        // Act
         ListUsersResponse response = await handler.Find(filters);
 
+        // Assert
         Assert.NotNull(response);
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
@@ -76,9 +86,10 @@ public class ListUsersHandlerTests
     [Fact]
     public async Task FindWhenBothFiltersShouldReturnFilteredUsers()
     {
+        // Arrange - Usando Object Mother para filtrado combinado
         FakeUserRepository repository = new();
-        User user1 = CreateUser(email: "john@example.com", fullName: "John Doe");
-        User user2 = CreateUser(email: "jane@example.com", fullName: "Jane Smith");
+        User user1 = UserMother.RandomWith(email: "john@example.com", fullName: "John Smith"); // email y nombre contienen "john"
+        User user2 = UserMother.Random(); // email y nombre no contienen "john"
         await repository.Save(user1);
         await repository.Save(user2);
         ListUsersHandler handler = new(repository);
@@ -88,8 +99,11 @@ public class ListUsersHandlerTests
             new() { ["field"] = "email", ["operator"] = "CONTAINS", ["value"] = "john" },
             new() { ["field"] = "fullname", ["operator"] = "CONTAINS", ["value"] = "John" }
         };
+
+        // Act
         ListUsersResponse response = await handler.Find(filters);
 
+        // Assert
         Assert.NotNull(response);
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
@@ -99,8 +113,9 @@ public class ListUsersHandlerTests
     [Fact]
     public async Task FindWhenNoMatchingUsersShouldReturnEmptyList()
     {
+        // Arrange - Usando Object Mother para usuario que no coincide con el filtro
         FakeUserRepository repository = new();
-        User user1 = CreateUser(email: "john@example.com", fullName: "John Doe");
+        User user1 = UserMother.Random(); // email aleatorio no contiene "nonexistent"
         await repository.Save(user1);
         ListUsersHandler handler = new(repository);
 
@@ -108,8 +123,11 @@ public class ListUsersHandlerTests
         {
             new() { ["field"] = "email", ["operator"] = "CONTAINS", ["value"] = "nonexistent" }
         };
+
+        // Act
         ListUsersResponse response = await handler.Find(filters);
 
+        // Assert
         Assert.NotNull(response);
         Assert.Empty(response.Users);
         Assert.Equal(0, response.Total);
@@ -118,9 +136,10 @@ public class ListUsersHandlerTests
     [Fact]
     public async Task FindWhenNotAllowedFieldShouldIgnoreFilter()
     {
+        // Arrange - Usando Object Mother para test de filtro inválido
         FakeUserRepository repository = new();
-        User user1 = CreateUser(email: "john@example.com", fullName: "John Doe");
-        User user2 = CreateUser(email: "jane@example.com", fullName: "Jane Smith");
+        User user1 = UserMother.RandomWith(email: "john.wick@example.com"); // email contiene "john"
+        User user2 = UserMother.Random(); // email aleatorio no contiene "john"
         await repository.Save(user1);
         await repository.Save(user2);
         ListUsersHandler handler = new(repository);
@@ -130,46 +149,29 @@ public class ListUsersHandlerTests
             new() { ["field"] = "email", ["operator"] = "CONTAINS", ["value"] = "john" },
             new() { ["field"] = "invalidField", ["operator"] = "CONTAINS", ["value"] = "someValue" }
         };
+
+        // Act
         ListUsersResponse response = await handler.Find(filters);
 
+        // Assert
         Assert.NotNull(response);
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
         Assert.Equal(user1.Id.Value, response.Users[0].Id);
     }
 
-    private static User CreateUser(string? email = null, string? fullName = null)
+    private sealed class FakeUserRepository : TestUserRepositoryBase
     {
-        Faker faker = new();
-        FakeHasher hasher = new();
-        Uuid id = Uuid.New();
-        EmailAddress emailAddress = new(email ?? faker.Internet.Email());
-        UserFullName userFullName = new(fullName ?? faker.Name.FullName());
-        UserPasswordHash password = UserPasswordHash.Create("Valid12!", hasher);
-
-        return User.Create(id, emailAddress, userFullName, password);
-    }
-
-    private sealed class FakeUserRepository : IUserRepository
-    {
-        private readonly Dictionary<Uuid, User> _users = new();
         public List<Uuid> FindCalls { get; } = new();
         public List<Criteria> MatchingCalls { get; } = new();
 
-        public Task<User?> Find(Uuid id)
+        public override Task<User?> Find(Uuid id)
         {
             FindCalls.Add(id);
-            _users.TryGetValue(id, out User? user);
-            return Task.FromResult(user);
+            return base.Find(id);
         }
 
-        public Task<User?> FindByEmail(EmailAddress email)
-        {
-            User? user = _users.Values.FirstOrDefault(u => u.Email == email);
-            return Task.FromResult(user);
-        }
-
-        public Task<IEnumerable<User>> Matching(Criteria criteria)
+        public override Task<IEnumerable<User>> Matching(Criteria criteria)
         {
             MatchingCalls.Add(criteria);
 
@@ -211,12 +213,6 @@ public class ListUsersHandlerTests
             }
 
             return Task.FromResult(results);
-        }
-
-        public Task Save(User user)
-        {
-            _users[user.Id] = user;
-            return Task.CompletedTask;
         }
     }
 }
