@@ -47,31 +47,29 @@ jobs:
     - name: Build solution
       run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
 
-    - name: Run tests with coverage
+    - name: Run unit tests
       run: |
-        echo "🧪 Running unit tests with coverage..."
-        # Run unit tests without architecture tests (NetArchTest conflicts with coverage collector)
         dotnet test tests/Payments.Core.Tests/Payments.Core.Tests.csproj \
           --no-build \
           --configuration Release \
           --filter "Category!=Architecture" \
-          --logger "trx;LogFileName=core_test_results.trx" \
+          --logger "trx;LogFileName=core_unit_tests.trx" \
           --collect:"XPlat Code Coverage"
 
-        echo "🏗️ Running architecture tests..."
-        # Run architecture tests separately (without coverage due to NetArchTest compatibility)
+    - name: Run architecture tests
+      run: |
         dotnet test tests/Payments.Core.Tests/Payments.Core.Tests.csproj \
           --no-build \
           --configuration Release \
           --filter "Category=Architecture" \
-          --logger "trx;LogFileName=architecture_test_results.trx"
+          --logger "trx;LogFileName=architecture_tests.trx"
 
-        echo "🔌 Running integration tests with coverage..."
-        # Run integration tests with coverage
+    - name: Run integration tests
+      run: |
         dotnet test tests/Payments.Api.IntegrationTests/Payments.Api.IntegrationTests.csproj \
           --no-build \
           --configuration Release \
-          --logger "trx;LogFileName=integration_test_results.trx" \
+          --logger "trx;LogFileName=integration_tests.trx" \
           --collect:"XPlat Code Coverage"
 
     - name: Upload test results
@@ -96,19 +94,9 @@ jobs:
         name: coverage-report
         path: coverage/
 
-    - name: Run security analysis
-      run: |
-        echo "Running security analysis with built-in analyzers..."
-
     - name: Run mutation testing
       run: |
         echo "Running mutation testing..."
-        if [ ! -d "tests/Payments.Core.Tests" ]; then
-          echo "❌ Core.Tests not found"
-          exit 1
-        fi
-
-        # Run Stryker and fail the pipeline if it doesn't execute properly
         if ! dotnet stryker \
           --test-project "tests/Payments.Core.Tests/Payments.Core.Tests.csproj" \
           --project "src/Payments.Core/Payments.Core.csproj" \
@@ -124,13 +112,10 @@ jobs:
           exit 1
         fi
 
-        # Check if mutation report was generated
         if ! find StrykerOutput -name "mutation-report.html" -type f | head -1 | xargs test -f; then
           echo "❌ No mutation report was generated"
           exit 1
         fi
-
-        # Show mutation score if available
         REPORT_PATH=$(find StrykerOutput -name "mutation-report.html" -type f | head -1)
         if [ -n "$REPORT_PATH" ]; then
           echo "📊 Mutation report generated at: $REPORT_PATH"
