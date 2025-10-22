@@ -11,7 +11,7 @@ public class ListUsersHandlerTests : UsersTestBase
     [Fact]
     public async Task FindWhenNoFiltersShouldReturnAllUsers()
     {
-        // Arrange - Usando Object Mother para crear múltiples usuarios
+
         FakeUserRepository repository = new();
         List<User> users = UserMother.RandomMultiple(2);
         foreach (User user in users)
@@ -20,10 +20,10 @@ public class ListUsersHandlerTests : UsersTestBase
         }
         ListUsersHandler handler = new(repository);
 
-        // Act
+
         ListUsersResponse response = await handler.Find(new List<Dictionary<string, string>>());
 
-        // Assert
+
         Assert.NotNull(response);
         Assert.Equal(2, response.Users.Count);
         Assert.Equal(2, response.Total);
@@ -34,10 +34,10 @@ public class ListUsersHandlerTests : UsersTestBase
     [Fact]
     public async Task FindWhenEmailFilterShouldReturnFilteredUsers()
     {
-        // Arrange - Usando Object Mother para usuarios específicos para filtrado
+
         FakeUserRepository repository = new();
-        User user1 = UserMother.RandomWith(email: "john.wick@example.com"); // email contiene "john"
-        User user2 = UserMother.Random(); // email aleatorio no contiene "john"
+        User user1 = UserMother.RandomWith(email: "john.wick@example.com");
+        User user2 = UserMother.Random();
         await repository.Save(user1);
         await repository.Save(user2);
         ListUsersHandler handler = new(repository);
@@ -47,10 +47,10 @@ public class ListUsersHandlerTests : UsersTestBase
             new() { ["field"] = "email", ["operator"] = "CONTAINS", ["value"] = "john" }
         };
 
-        // Act
+
         ListUsersResponse response = await handler.Find(filters);
 
-        // Assert
+
         Assert.NotNull(response);
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
@@ -60,10 +60,10 @@ public class ListUsersHandlerTests : UsersTestBase
     [Fact]
     public async Task FindWhenFullNameFilterShouldReturnFilteredUsers()
     {
-        // Arrange - Usando Object Mother para usuarios específicos para filtrado por nombre
+
         FakeUserRepository repository = new();
-        User user1 = UserMother.Random(); // nombre aleatorio no contiene "Jane"
-        User user2 = UserMother.RandomWith(email: "jane@example.com", fullName: "Jane Austen"); // nombre contiene "Jane"
+        User user1 = UserMother.Random();
+        User user2 = UserMother.RandomWith(email: "jane@example.com", fullName: "Jane Austen");
         await repository.Save(user1);
         await repository.Save(user2);
         ListUsersHandler handler = new(repository);
@@ -73,10 +73,10 @@ public class ListUsersHandlerTests : UsersTestBase
             new() { ["field"] = "fullname", ["operator"] = "CONTAINS", ["value"] = "Jane" }
         };
 
-        // Act
+
         ListUsersResponse response = await handler.Find(filters);
 
-        // Assert
+
         Assert.NotNull(response);
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
@@ -86,10 +86,10 @@ public class ListUsersHandlerTests : UsersTestBase
     [Fact]
     public async Task FindWhenBothFiltersShouldReturnFilteredUsers()
     {
-        // Arrange - Usando Object Mother para filtrado combinado
+
         FakeUserRepository repository = new();
-        User user1 = UserMother.RandomWith(email: "john@example.com", fullName: "John Smith"); // email y nombre contienen "john"
-        User user2 = UserMother.Random(); // email y nombre no contienen "john"
+        User user1 = UserMother.RandomWith(email: "john@example.com", fullName: "John Smith");
+        User user2 = UserMother.Random();
         await repository.Save(user1);
         await repository.Save(user2);
         ListUsersHandler handler = new(repository);
@@ -100,10 +100,10 @@ public class ListUsersHandlerTests : UsersTestBase
             new() { ["field"] = "fullname", ["operator"] = "CONTAINS", ["value"] = "John" }
         };
 
-        // Act
+
         ListUsersResponse response = await handler.Find(filters);
 
-        // Assert
+
         Assert.NotNull(response);
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
@@ -113,9 +113,9 @@ public class ListUsersHandlerTests : UsersTestBase
     [Fact]
     public async Task FindWhenNoMatchingUsersShouldReturnEmptyList()
     {
-        // Arrange - Usando Object Mother para usuario que no coincide con el filtro
+
         FakeUserRepository repository = new();
-        User user1 = UserMother.Random(); // email aleatorio no contiene "nonexistent"
+        User user1 = UserMother.Random();
         await repository.Save(user1);
         ListUsersHandler handler = new(repository);
 
@@ -124,10 +124,10 @@ public class ListUsersHandlerTests : UsersTestBase
             new() { ["field"] = "email", ["operator"] = "CONTAINS", ["value"] = "nonexistent" }
         };
 
-        // Act
+
         ListUsersResponse response = await handler.Find(filters);
 
-        // Assert
+
         Assert.NotNull(response);
         Assert.Empty(response.Users);
         Assert.Equal(0, response.Total);
@@ -136,10 +136,10 @@ public class ListUsersHandlerTests : UsersTestBase
     [Fact]
     public async Task FindWhenNotAllowedFieldShouldIgnoreFilter()
     {
-        // Arrange - Usando Object Mother para test de filtro inválido
+
         FakeUserRepository repository = new();
-        User user1 = UserMother.RandomWith(email: "john.wick@example.com"); // email contiene "john"
-        User user2 = UserMother.Random(); // email aleatorio no contiene "john"
+        User user1 = UserMother.RandomWith(email: "john.wick@example.com");
+        User user2 = UserMother.Random();
         await repository.Save(user1);
         await repository.Save(user2);
         ListUsersHandler handler = new(repository);
@@ -150,10 +150,10 @@ public class ListUsersHandlerTests : UsersTestBase
             new() { ["field"] = "invalidField", ["operator"] = "CONTAINS", ["value"] = "someValue" }
         };
 
-        // Act
+
         ListUsersResponse response = await handler.Find(filters);
 
-        // Assert
+
         Assert.NotNull(response);
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
@@ -177,7 +177,7 @@ public class ListUsersHandlerTests : UsersTestBase
 
             IEnumerable<User> results = _users.Values;
 
-            // Apply simple filtering for testing purposes
+
             if (criteria.HasFilters() && criteria.Filters != null)
             {
                 foreach (Filter filter in criteria.Filters.Values)
@@ -193,7 +193,7 @@ public class ListUsersHandlerTests : UsersTestBase
                 }
             }
 
-            // Apply ordering
+
             if (criteria.HasOrder() && criteria.Order?.OrderBy.Value == "CreatedAt")
             {
                 results = criteria.Order.OrderType == OrderType.DESC
@@ -201,7 +201,7 @@ public class ListUsersHandlerTests : UsersTestBase
                     : results.OrderBy(u => u.CreatedAt);
             }
 
-            // Apply pagination
+
             if (criteria.Offset.HasValue)
             {
                 results = results.Skip(criteria.Offset.Value);

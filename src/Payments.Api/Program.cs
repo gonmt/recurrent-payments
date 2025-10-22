@@ -42,9 +42,6 @@ await app.RunAsync();
 
 public partial class Program
 {
-    /// <summary>
-    /// Protected constructor satisfies analyzers while keeping WebApplicationFactory support.
-    /// </summary>
     protected Program()
     {
     }

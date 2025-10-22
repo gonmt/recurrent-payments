@@ -12,9 +12,6 @@ public class QueryProcessor(IHttpContextAccessor httpContextAccessor)
         _httpContextAccessor?.HttpContext?.Request.Query ??
         new QueryCollection();
 
-    /// <summary>
-    /// Gets all parsed filters from query parameters (except pagination/sorting params)
-    /// </summary>
     public List<Dictionary<string, string>> Filters
     {
         get
@@ -33,24 +30,12 @@ public class QueryProcessor(IHttpContextAccessor httpContextAccessor)
         }
     }
 
-    /// <summary>
-    /// Gets the order by field name
-    /// </summary>
     public string? OrderBy => GetOrderBy();
 
-    /// <summary>
-    /// Gets the sort order (asc/desc)
-    /// </summary>
     public string? Order => GetOrder();
 
-    /// <summary>
-    /// Gets the pagination limit
-    /// </summary>
     public int? Limit => GetLimit();
 
-    /// <summary>
-    /// Gets the pagination offset
-    /// </summary>
     public int? Offset => GetOffset();
 
     private List<Dictionary<string, string>> ParseFilters()

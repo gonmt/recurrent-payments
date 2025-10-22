@@ -10,16 +10,16 @@ public class GetUserHandlerTests : UsersTestBase
     [Fact]
     public async Task FindWhenUserExistsShouldReturnResponse()
     {
-        // Arrange - Usando Object Mother para crear un usuario predefinido
+
         FakeUserRepository repository = new();
         User user = UserMother.Random();
         await repository.Save(user);
         GetUserHandler handler = new(repository);
 
-        // Act
+
         GetUserResponse? response = await handler.Find(user.Id.Value);
 
-        // Assert
+
         Assert.NotNull(response);
         Assert.Equal(user.Id.Value, response.Id);
         Assert.Equal(user.Email.Value, response.Email);

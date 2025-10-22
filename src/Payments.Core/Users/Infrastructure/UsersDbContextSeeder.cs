@@ -10,7 +10,6 @@ public static class UsersDbContextSeeder
 {
     public static void Seed(UsersDbContext context, IHasher hasher)
     {
-
         _ = context.Database.EnsureCreated();
 
         if (context.Users.Any())
@@ -18,7 +17,6 @@ public static class UsersDbContextSeeder
             return;
         }
 
-        // Mantener el usuario actual existente
         Uuid id = Uuid.From(UsersSeedData.UserId);
         EmailAddress email = new(UsersSeedData.Email);
         UserFullName fullName = new(UsersSeedData.FullName);
@@ -27,7 +25,6 @@ public static class UsersDbContextSeeder
 
         _ = context.Users.Add(user);
 
-        // Generar 50 usuarios adicionales con Bogus
         List<User> users = GenerateUsers(50, hasher);
         context.Users.AddRange(users);
 
