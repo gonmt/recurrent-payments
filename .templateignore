@@ -1,0 +1,28 @@
+# .templateignore
+# Files and directories to exclude when creating template from this project
+
+# Development files
+.git/
+.gitignore
+.templateignore
+install-template.sh
+install-template.ps1
+
+# Build artifacts
+bin/
+obj/
+TestResults/
+coverage/
+StrykerOutput/
+
+# IDE files
+.vs/
+.idea/
+*.user
+
+# Temporary files
+*.tmp
+*.temp
+
+# Template-specific development files
+README.template.md

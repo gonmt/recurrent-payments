@@ -1,13 +1,13 @@
 {
   "$schema": "https://stryker-mutator.io/stryker.schema.json",
   "stryker-config": {
-    "solution": "Payments.Recurring.sln",
-    "project": "Payments.Core.csproj",
+    "solution": "Archetype.Recurring.sln",
+    "project": "Archetype.Core.csproj",
     "test-projects": [
-      "tests/Payments.Core.Tests/Payments.Core.Tests.csproj"
+      "tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj"
     ],
     "mutate": [
-      "src/Payments.Core/**/*.cs"
+      "src/Archetype.Core/**/*.cs"
     ],
     "reporters": [
       "Progress",

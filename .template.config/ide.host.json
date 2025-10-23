@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json.schemastore.org/vs-2017.3.host",
+  "icon": "ide.png",
+  "symbolInfo": [
+    {
+      "id": "ProjectName",
+      "name": {
+        "text": "Project Name"
+      },
+      "description": {
+        "text": "The name for your new project"
+      }
+    },
+    {
+      "id": "ProjectPrefix",
+      "name": {
+        "text": "Company Prefix"
+      },
+      "description": {
+        "text": "Your company name or prefix for namespaces"
+      }
+    },
+    {
+      "id": "TargetFramework",
+      "name": {
+        "text": "Target Framework"
+      },
+      "description": {
+        "text": "The .NET framework version to target"
+      }
+    },
+    {
+      "id": "IncludeDocker",
+      "name": {
+        "text": "Include Docker"
+      },
+      "description": {
+        "text": "Add Docker support to the project"
+      }
+    },
+    {
+      "id": "IncludeGitHubActions",
+      "name": {
+        "text": "Include GitHub Actions"
+      },
+      "description": {
+        "text": "Add GitHub Actions workflow files"
+      }
+    }
+  ]
+}

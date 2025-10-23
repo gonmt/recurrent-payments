@@ -1,0 +1,52 @@
+using System.Net.Http.Json;
+
+using Archetype.Api.IntegrationTests.Support;
+using Archetype.Core.Users.Application;
+using Archetype.Core.Users.Domain;
+
+namespace Archetype.Api.IntegrationTests.Endpoints.Users;
+
+public class GetUserEndpointTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
+{
+    private readonly CustomWebApplicationFactory _factory = factory;
+    private readonly HttpClient _client = factory.CreateClient();
+
+    [Fact]
+    public async Task GetUserWithExistingUserShouldReturnEnvelopeWithUser()
+    {
+        (User User, string Password) userData = await IntegrationTestData.CreateUser(_factory);
+        User user = userData.User;
+
+        HttpResponseMessage response = await _client.GetAsync($"/users/{user.Id.Value}");
+
+        response.EnsureSuccessStatusCode();
+        ApiEnvelope<GetUserResponse?>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<GetUserResponse?>>();
+
+        Assert.NotNull(payload);
+        Assert.True(payload.Success);
+        Assert.NotNull(payload.Data);
+        Assert.Equal(user.Id.Value, payload.Data!.Id);
+        Assert.Equal(user.Email.Value, payload.Data.Email);
+        Assert.Equal(user.FullName.Value, payload.Data.FullName);
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.RequestId));
+    }
+
+    [Fact]
+    public async Task GetUserWithUnknownUserShouldReturnEnvelopeWithNullData()
+    {
+        string unknownUserId = Guid.CreateVersion7().ToString();
+
+        HttpResponseMessage response = await _client.GetAsync($"/users/{unknownUserId}");
+
+        response.EnsureSuccessStatusCode();
+        ApiEnvelope<GetUserResponse?>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<GetUserResponse?>>();
+
+        Assert.NotNull(payload);
+        Assert.True(payload.Success);
+        Assert.Null(payload.Data);
+    }
+
+    private sealed record ApiEnvelope<T>(T? Data, ApiMeta Meta, bool Success);
+    private sealed record ApiMeta(string RequestId, ApiPagination? Pagination);
+    private sealed record ApiPagination(int Page, int Size, long? Total, string? NextCursor);
+}

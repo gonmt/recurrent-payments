@@ -1,0 +1,38 @@
+using Archetype.Core.Tests.Shared.Domain;
+using Archetype.Core.Tests.Users.TestObjects;
+using Archetype.Core.Users.Domain;
+
+namespace Archetype.Core.Tests.Auth.TestObjects;
+
+public static class AuthenticationMother
+{
+    public const string ValidPassword = "Valid12!";
+    public const string IncorrectPassword = "Wrong12!";
+
+    public static (User User, FakeHasher Hasher, string Password) SuccessfulAuthenticationScenario()
+    {
+        FakeHasher hasher = new();
+        const string password = ValidPassword;
+        User user = UserMother.RandomWith(hasher: hasher);
+
+        return (user, hasher, password);
+    }
+
+    public static (FakeHasher Hasher, string Email, string Password) UserNotExistsScenario()
+    {
+        FakeHasher hasher = new();
+        const string email = "nonexistent@example.com";
+        const string password = ValidPassword;
+
+        return (hasher, email, password);
+    }
+
+    public static (User User, FakeHasher Hasher, string Password) HasherFailureScenario()
+    {
+        FakeHasher hasher = new(verifyFunc: (_, _) => false);
+        const string password = ValidPassword;
+        User user = UserMother.RandomWith(hasher: hasher);
+
+        return (user, hasher, password);
+    }
+}

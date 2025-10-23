@@ -8,7 +8,7 @@ on:
 
 env:
   DOTNET_VERSION: '9.0.x'
-  SOLUTION_FILE: 'Payments.Recurring.sln'
+  SOLUTION_FILE: 'Archetype.Recurring.sln'
   HUSKY: 0
 
 jobs:
@@ -52,7 +52,7 @@ jobs:
 
     - name: Run unit tests
       run: |
-        dotnet test tests/Payments.Core.Tests/Payments.Core.Tests.csproj \
+        dotnet test tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj \
           --no-build \
           --configuration Release \
           --filter "Category!=Architecture" \
@@ -61,7 +61,7 @@ jobs:
 
     - name: Run architecture tests
       run: |
-        dotnet test tests/Payments.Core.Tests/Payments.Core.Tests.csproj \
+        dotnet test tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj \
           --no-build \
           --configuration Release \
           --filter "Category=Architecture" \
@@ -69,7 +69,7 @@ jobs:
 
     - name: Run integration tests
       run: |
-        dotnet test tests/Payments.Api.IntegrationTests/Payments.Api.IntegrationTests.csproj \
+        dotnet test tests/Archetype.Api.IntegrationTests/Archetype.Api.IntegrationTests.csproj \
           --no-build \
           --configuration Release \
           --logger "trx;LogFileName=integration_tests.trx" \
@@ -101,8 +101,8 @@ jobs:
       run: |
         echo "Running mutation testing..."
         if ! dotnet stryker \
-          --test-project "tests/Payments.Core.Tests/Payments.Core.Tests.csproj" \
-          --project "src/Payments.Core/Payments.Core.csproj" \
+          --test-project "tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj" \
+          --project "src/Archetype.Core/Archetype.Core.csproj" \
           --mutate "**/Domain/**/*.cs" \
           --reporter "html" \
           --reporter "json" \

@@ -4,19 +4,19 @@ FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS restore
 WORKDIR /src
 
 COPY Directory.Build.props ./
-COPY Payments.Recurring.sln ./
-COPY src/Payments.Api/Payments.Api.csproj src/Payments.Api/
-COPY src/Payments.Core/Payments.Core.csproj src/Payments.Core/
-COPY tests/Payments.Core.Tests/Payments.Core.Tests.csproj tests/Payments.Core.Tests/
-COPY tests/Payments.Api.IntegrationTests/Payments.Api.IntegrationTests.csproj tests/Payments.Api.IntegrationTests/
+COPY Archetype.Recurring.sln ./
+COPY src/Archetype.Api/Archetype.Api.csproj src/Archetype.Api/
+COPY src/Archetype.Core/Archetype.Core.csproj src/Archetype.Core/
+COPY tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj tests/Archetype.Core.Tests/
+COPY tests/Archetype.Api.IntegrationTests/Archetype.Api.IntegrationTests.csproj tests/Archetype.Api.IntegrationTests/
 
-RUN dotnet restore Payments.Recurring.sln
+RUN dotnet restore Archetype.Recurring.sln
 
 COPY . .
 
 FROM restore AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish src/Payments.Api/Payments.Api.csproj \
+RUN dotnet publish src/Archetype.Api/Archetype.Api.csproj \
     -c ${BUILD_CONFIGURATION} \
     -o /app/publish \
     /p:UseAppHost=false
@@ -27,7 +27,7 @@ ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 COPY --from=publish /app/publish ./
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "Payments.Api.dll"]
+ENTRYPOINT ["dotnet", "Archetype.Api.dll"]
 
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS development
 WORKDIR /src
@@ -36,12 +36,12 @@ ENV ASPNETCORE_URLS=http://+:8080
 ENV DOTNET_USE_POLLING_FILE_WATCHER=1
 
 COPY Directory.Build.props ./
-COPY Payments.Recurring.sln ./
-COPY src/Payments.Api/Payments.Api.csproj src/Payments.Api/
-COPY src/Payments.Core/Payments.Core.csproj src/Payments.Core/
-COPY tests/Payments.Core.Tests/Payments.Core.Tests.csproj tests/Payments.Core.Tests/
-COPY tests/Payments.Api.IntegrationTests/Payments.Api.IntegrationTests.csproj tests/Payments.Api.IntegrationTests/
-RUN dotnet restore Payments.Recurring.sln
+COPY Archetype.Recurring.sln ./
+COPY src/Archetype.Api/Archetype.Api.csproj src/Archetype.Api/
+COPY src/Archetype.Core/Archetype.Core.csproj src/Archetype.Core/
+COPY tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj tests/Archetype.Core.Tests/
+COPY tests/Archetype.Api.IntegrationTests/Archetype.Api.IntegrationTests.csproj tests/Archetype.Api.IntegrationTests/
+RUN dotnet restore Archetype.Recurring.sln
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl unzip \
@@ -51,4 +51,4 @@ RUN curl -sSL https://aka.ms/getvsdbgsh -o getvsdbg.sh \
     && rm getvsdbg.sh
 
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "watch", "--project", "src/Payments.Api/Payments.Api.csproj", "run", "--no-launch-profile", "--urls", "http://0.0.0.0:8080"]
+ENTRYPOINT ["dotnet", "watch", "--project", "src/Archetype.Api/Archetype.Api.csproj", "run", "--no-launch-profile", "--urls", "http://0.0.0.0:8080"]

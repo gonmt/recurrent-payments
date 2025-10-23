@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Template Author",
+  "classifications": [
+    "Web",
+    "API",
+    "Clean Architecture",
+    "DDD"
+  ],
+  "identity": "Archetype.CleanArchitecture.Template",
+  "name": "Clean Architecture DDD Template",
+  "shortName": "cleanarch",
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "sourceName": "Archetype",
+  "preferNameDirectory": true,
+  "symbols": {
+    "ProjectName": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "MyProject",
+      "replaces": "Archetype",
+      "description": "The name of the project to create"
+    },
+    "TargetFramework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "net9.0",
+      "choices": [
+        {
+          "choice": "net8.0",
+          "description": "Target .NET 8.0"
+        },
+        {
+          "choice": "net9.0",
+          "description": "Target .NET 9.0"
+        }
+      ],
+      "replaces": "net9.0",
+      "description": "The target framework for the project"
+    },
+    "IncludeDocker": {
+      "type": "parameter",
+      "dataType": "bool",
+      "defaultValue": "true",
+      "description": "Include Docker support"
+    },
+    "IncludeGitHubActions": {
+      "type": "parameter",
+      "dataType": "bool",
+      "defaultValue": "true",
+      "description": "Include GitHub Actions workflows"
+    }
+  },
+  "postActions": [
+    {
+      "condition": "(IncludeGitHubActions)",
+      "description": "Restore NuGet packages",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ],
+  "description": "A Clean Architecture template using Domain-Driven Design (DDD) principles for .NET applications. Includes API, Core domain logic, comprehensive testing, and modern development practices."
+}
