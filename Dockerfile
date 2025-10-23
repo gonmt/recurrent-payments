@@ -4,13 +4,13 @@ FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS restore
 WORKDIR /src
 
 COPY Directory.Build.props ./
-COPY Archetype.Recurring.sln ./
+COPY Archetype.sln ./
 COPY src/Archetype.Api/Archetype.Api.csproj src/Archetype.Api/
 COPY src/Archetype.Core/Archetype.Core.csproj src/Archetype.Core/
 COPY tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj tests/Archetype.Core.Tests/
 COPY tests/Archetype.Api.IntegrationTests/Archetype.Api.IntegrationTests.csproj tests/Archetype.Api.IntegrationTests/
 
-RUN dotnet restore Archetype.Recurring.sln
+RUN dotnet restore Archetype.sln
 
 COPY . .
 
@@ -36,12 +36,12 @@ ENV ASPNETCORE_URLS=http://+:8080
 ENV DOTNET_USE_POLLING_FILE_WATCHER=1
 
 COPY Directory.Build.props ./
-COPY Archetype.Recurring.sln ./
+COPY Archetype.sln ./
 COPY src/Archetype.Api/Archetype.Api.csproj src/Archetype.Api/
 COPY src/Archetype.Core/Archetype.Core.csproj src/Archetype.Core/
 COPY tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj tests/Archetype.Core.Tests/
 COPY tests/Archetype.Api.IntegrationTests/Archetype.Api.IntegrationTests.csproj tests/Archetype.Api.IntegrationTests/
-RUN dotnet restore Archetype.Recurring.sln
+RUN dotnet restore Archetype.sln
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl unzip \

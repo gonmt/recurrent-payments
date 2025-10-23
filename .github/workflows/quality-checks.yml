@@ -8,7 +8,7 @@ on:
 
 env:
   DOTNET_VERSION: '9.0.x'
-  SOLUTION_FILE: 'Archetype.Recurring.sln'
+  SOLUTION_FILE: 'Archetype.sln'
   HUSKY: 0
 
 jobs:
