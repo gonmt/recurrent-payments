@@ -10,6 +10,7 @@ COPY src/Archetype.Core/Archetype.Core.csproj src/Archetype.Core/
 COPY tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj tests/Archetype.Core.Tests/
 COPY tests/Archetype.Api.IntegrationTests/Archetype.Api.IntegrationTests.csproj tests/Archetype.Api.IntegrationTests/
 
+ENV HUSKY=0
 RUN dotnet restore Archetype.sln
 
 COPY . .
@@ -41,6 +42,8 @@ COPY src/Archetype.Api/Archetype.Api.csproj src/Archetype.Api/
 COPY src/Archetype.Core/Archetype.Core.csproj src/Archetype.Core/
 COPY tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj tests/Archetype.Core.Tests/
 COPY tests/Archetype.Api.IntegrationTests/Archetype.Api.IntegrationTests.csproj tests/Archetype.Api.IntegrationTests/
+
+ENV HUSKY=0
 RUN dotnet restore Archetype.sln
 
 RUN apt-get update \
