@@ -23,7 +23,7 @@ public static class CoreServiceCollectionExtensions
             _ = services.AddScoped(subscriber);
         }
 
-        services.AddSingleton<IEventBus, InMemoryEventBus>();
+        _ = services.AddSingleton<IEventBus, InMemoryEventBus>();
 
         return services;
     }
