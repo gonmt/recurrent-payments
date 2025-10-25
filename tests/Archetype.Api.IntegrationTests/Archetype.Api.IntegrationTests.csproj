@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
     <!-- Enable parallel test execution -->
     <EnableParallelTestExecution>true</EnableParallelTestExecution>
     <!-- Maximum number of parallel threads -->
