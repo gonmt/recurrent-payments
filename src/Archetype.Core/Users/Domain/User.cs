@@ -3,9 +3,8 @@ using Archetype.Core.Shared.Domain.ValueObjects;
 
 namespace Archetype.Core.Users.Domain;
 
-public sealed class User
+public sealed class User : AggregateRoot<Uuid>
 {
-    public readonly Uuid Id;
     public readonly EmailAddress Email;
     public UserFullName FullName { get; }
     private UserPasswordHash _passwordHash;
@@ -31,7 +30,10 @@ public sealed class User
         );
     }
 
-    public void ChangePassword(UserPasswordHash newPassword) => _passwordHash = newPassword;
+    public void ChangePassword(UserPasswordHash newPassword)
+    {
+        _passwordHash = newPassword;
+    }
 
     public bool VerifyPassword(string plainPassword, IHasher hasher) => _passwordHash.Verify(plainPassword, hasher);
 }

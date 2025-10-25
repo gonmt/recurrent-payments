@@ -50,6 +50,28 @@ public class InMemoryEventBus : IEventBus
     public async Task DispatchAsync<TDomainEvent>(TDomainEvent domainEvent, CancellationToken cancellationToken = default)
         where TDomainEvent : DomainEvent
     {
+        await DispatchSingleEventAsync(domainEvent, cancellationToken);
+    }
+
+    public async Task DispatchAsync<TDomainEvent>(IEnumerable<TDomainEvent> domainEvents, CancellationToken cancellationToken = default)
+        where TDomainEvent : DomainEvent
+    {
+        List<TDomainEvent> eventsList = domainEvents.ToList();
+
+        if (eventsList.Count == 0)
+        {
+            return;
+        }
+
+        IEnumerable<Task> tasks = eventsList.Select(domainEvent =>
+            DispatchSingleEventAsync(domainEvent, cancellationToken));
+
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task DispatchSingleEventAsync<TDomainEvent>(TDomainEvent domainEvent, CancellationToken cancellationToken)
+        where TDomainEvent : DomainEvent
+    {
         Type eventType = typeof(TDomainEvent);
 
         if (_subscribers.TryGetValue(eventType, out List<Type>? subscriberTypes))
