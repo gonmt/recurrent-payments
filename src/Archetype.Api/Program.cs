@@ -1,6 +1,7 @@
 using Archetype.Api.Endpoints.Auth;
 using Archetype.Api.Endpoints.Shared;
 using Archetype.Api.Extensions;
+using Archetype.Api.Middleware;
 using Archetype.Core.Auth.Domain;
 using Archetype.Core.Auth.Infrastructure;
 using Archetype.Core.Shared.Domain;
@@ -107,6 +108,8 @@ public class Program
         builder.Services.RegisterApiEndpoints();
 
         WebApplication app = builder.Build();
+
+        app.UseMiddleware<CorrelationContextMiddleware>();
 
         if (app.Environment.IsDevelopment())
         {

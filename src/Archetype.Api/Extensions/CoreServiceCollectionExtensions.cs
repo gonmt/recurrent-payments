@@ -3,6 +3,7 @@ using System.Reflection;
 using Archetype.Core;
 using Archetype.Core.Shared.Domain;
 using Archetype.Core.Shared.Domain.Events;
+using Archetype.Core.Shared.Infrastructure;
 using Archetype.Core.Shared.Infrastructure.Events;
 
 namespace Archetype.Api.Extensions;
@@ -24,6 +25,7 @@ public static class CoreServiceCollectionExtensions
         }
 
         _ = services.AddSingleton<IEventBus, InMemoryEventBus>();
+        _ = services.AddSingleton<ILogContext, LogContext>();
 
         return services;
     }
