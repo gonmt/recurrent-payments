@@ -26,6 +26,7 @@ public class LoginEndpointTests(CustomWebApplicationFactory factory) : IClassFix
         Assert.NotNull(payload.Data);
         Assert.False(string.IsNullOrWhiteSpace(payload.Data!.Token));
         Assert.False(string.IsNullOrWhiteSpace(payload.Meta.RequestId));
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
     }
 
     [Fact]
@@ -49,6 +50,9 @@ public class LoginEndpointTests(CustomWebApplicationFactory factory) : IClassFix
         Assert.NotNull(payload);
         Assert.False(payload!.Success);
         Assert.Equal("Invalid credentials.", payload.Error.Message);
+        Assert.Equal("INVALID_CREDENTIALS", payload.Error.Code);
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.RequestId));
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
     }
 
     [Fact]
@@ -56,12 +60,15 @@ public class LoginEndpointTests(CustomWebApplicationFactory factory) : IClassFix
     {
         HttpResponseMessage response = await _client.PostAsJsonAsync("/auth/login", new { Password = "Mono8210!" });
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         ApiErrorEnvelope? payload = await response.Content.ReadFromJsonAsync<ApiErrorEnvelope>();
 
         Assert.NotNull(payload);
         Assert.False(payload!.Success);
         Assert.Equal("Validation error.", payload.Error.Message);
+        Assert.Equal("VALIDATION_ERROR", payload.Error.Code);
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.RequestId));
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
         Assert.Contains(payload.Error.Fields!, field => field.Name == "Email");
     }
 
@@ -71,6 +78,6 @@ public class LoginEndpointTests(CustomWebApplicationFactory factory) : IClassFix
     private sealed record ApiErrorEnvelope(ApiErrorBody Error, ApiMeta Meta, bool Success);
     private sealed record ApiErrorBody(string Code, string Message, string? Details, ApiFieldError[]? Fields, bool Retryable);
     private sealed record ApiFieldError(string Name, string Message);
-    private sealed record ApiMeta(string RequestId, ApiPagination? Pagination);
+    private sealed record ApiMeta(string RequestId, string? CorrelationId, ApiPagination? Pagination, string? UserId);
     private sealed record ApiPagination(int Page, int Size, long? Total, string? NextCursor);
 }

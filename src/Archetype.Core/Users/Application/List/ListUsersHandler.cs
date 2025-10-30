@@ -1,5 +1,6 @@
 using Archetype.Core.Shared.Domain;
 using Archetype.Core.Shared.Domain.FiltersByCriteria;
+using Archetype.Core.Shared.Domain.Results;
 using Archetype.Core.Shared.Infrastructure;
 using Archetype.Core.Users.Domain;
 
@@ -7,7 +8,7 @@ namespace Archetype.Core.Users.Application.List;
 
 public sealed class ListUsersHandler(IUserRepository userRepository) : IHandler
 {
-    public async Task<ListUsersResponse> Find(List<Dictionary<string, string>> filters, int? limit = null, int? offset = null)
+    public async Task<Result<ListUsersResponse>> Find(List<Dictionary<string, string>> filters, int? limit = null, int? offset = null)
     {
         Filters? criteriaFilters = Filters.FromValues(filters.Only("email", "fullname"));
 

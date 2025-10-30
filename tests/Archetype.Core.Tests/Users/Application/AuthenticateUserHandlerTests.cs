@@ -1,3 +1,4 @@
+using Archetype.Core.Shared.Domain.Results;
 using Archetype.Core.Tests.Auth.TestObjects;
 using Archetype.Core.Tests.Users.TestObjects;
 using Archetype.Core.Users.Application;
@@ -17,10 +18,11 @@ public class AuthenticateUserHandlerTests : UsersTestBase
         AuthenticateUserHandler handler = new(repository, hasher);
 
 
-        AuthenticateUserResponse? response = await handler.Authenticate(user.Email.Value, password);
+        Result<AuthenticateUserResponse> result = await handler.Authenticate(user.Email.Value, password);
 
 
-        Assert.NotNull(response);
+        Assert.True(result.IsSuccess);
+        AuthenticateUserResponse response = result.Value!;
         Assert.Equal(user.Id.Value, response.Id);
         Assert.Equal(user.Email.Value, response.Email);
         Assert.Equal(user.FullName.Value, response.FullName);
@@ -35,10 +37,11 @@ public class AuthenticateUserHandlerTests : UsersTestBase
         AuthenticateUserHandler handler = new(repository, hasher);
 
 
-        AuthenticateUserResponse? response = await handler.Authenticate(email, password);
+        Result<AuthenticateUserResponse> result = await handler.Authenticate(email, password);
 
 
-        Assert.Null(response);
+        Assert.True(result.IsError);
+        Assert.Equal(ErrorType.Unauthorized, result.FirstError.Type);
     }
 
     [Fact]
@@ -50,10 +53,11 @@ public class AuthenticateUserHandlerTests : UsersTestBase
         AuthenticateUserHandler handler = new(repository, hasher);
 
 
-        AuthenticateUserResponse? response = await handler.Authenticate(user.Email.Value, password);
+        Result<AuthenticateUserResponse> result = await handler.Authenticate(user.Email.Value, password);
 
 
-        Assert.Null(response);
+        Assert.True(result.IsError);
+        Assert.Equal(ErrorType.Unauthorized, result.FirstError.Type);
     }
 
     private sealed class InMemoryRepository : TestUserRepositoryBase

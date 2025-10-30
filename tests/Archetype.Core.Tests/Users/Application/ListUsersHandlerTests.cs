@@ -1,4 +1,5 @@
 using Archetype.Core.Shared.Domain.FiltersByCriteria;
+using Archetype.Core.Shared.Domain.Results;
 using Archetype.Core.Shared.Domain.ValueObjects;
 using Archetype.Core.Tests.Users.TestObjects;
 using Archetype.Core.Users.Application.List;
@@ -21,10 +22,11 @@ public class ListUsersHandlerTests : UsersTestBase
         ListUsersHandler handler = new(repository);
 
 
-        ListUsersResponse response = await handler.Find(new List<Dictionary<string, string>>());
+        Result<ListUsersResponse> result = await handler.Find(new List<Dictionary<string, string>>());
 
 
-        Assert.NotNull(response);
+        Assert.True(result.IsSuccess);
+        ListUsersResponse response = result.Value!;
         Assert.Equal(2, response.Users.Count);
         Assert.Equal(2, response.Total);
         Assert.Contains(response.Users, u => u.Id == users[0].Id.Value);
@@ -48,10 +50,11 @@ public class ListUsersHandlerTests : UsersTestBase
         };
 
 
-        ListUsersResponse response = await handler.Find(filters);
+        Result<ListUsersResponse> result = await handler.Find(filters);
 
 
-        Assert.NotNull(response);
+        Assert.True(result.IsSuccess);
+        ListUsersResponse response = result.Value!;
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
         Assert.Equal(user1.Id.Value, response.Users[0].Id);
@@ -74,10 +77,11 @@ public class ListUsersHandlerTests : UsersTestBase
         };
 
 
-        ListUsersResponse response = await handler.Find(filters);
+        Result<ListUsersResponse> result = await handler.Find(filters);
 
 
-        Assert.NotNull(response);
+        Assert.True(result.IsSuccess);
+        ListUsersResponse response = result.Value!;
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
         Assert.Equal(user2.Id.Value, response.Users[0].Id);
@@ -101,10 +105,11 @@ public class ListUsersHandlerTests : UsersTestBase
         };
 
 
-        ListUsersResponse response = await handler.Find(filters);
+        Result<ListUsersResponse> result = await handler.Find(filters);
 
 
-        Assert.NotNull(response);
+        Assert.True(result.IsSuccess);
+        ListUsersResponse response = result.Value!;
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
         Assert.Equal(user1.Id.Value, response.Users[0].Id);
@@ -125,10 +130,11 @@ public class ListUsersHandlerTests : UsersTestBase
         };
 
 
-        ListUsersResponse response = await handler.Find(filters);
+        Result<ListUsersResponse> result = await handler.Find(filters);
 
 
-        Assert.NotNull(response);
+        Assert.True(result.IsSuccess);
+        ListUsersResponse response = result.Value!;
         Assert.Empty(response.Users);
         Assert.Equal(0, response.Total);
     }
@@ -151,10 +157,11 @@ public class ListUsersHandlerTests : UsersTestBase
         };
 
 
-        ListUsersResponse response = await handler.Find(filters);
+        Result<ListUsersResponse> result = await handler.Find(filters);
 
 
-        Assert.NotNull(response);
+        Assert.True(result.IsSuccess);
+        ListUsersResponse response = result.Value!;
         Assert.Single(response.Users);
         Assert.Equal(1, response.Total);
         Assert.Equal(user1.Id.Value, response.Users[0].Id);

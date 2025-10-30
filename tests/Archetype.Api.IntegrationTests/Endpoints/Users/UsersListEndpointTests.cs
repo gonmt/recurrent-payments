@@ -25,6 +25,8 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : IClas
         Assert.NotEmpty(payload.Data!.Users);
         Assert.True(payload.Data.Total >= payload.Data.Users.Count);
         Assert.Contains(payload.Data.Users, u => u.Id == createdUser.Id.Value);
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.RequestId));
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
         Assert.Null(payload.Meta.Pagination);
     }
 
@@ -43,6 +45,8 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : IClas
 
         Assert.NotNull(payload);
         Assert.True(payload!.Success);
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.RequestId));
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
         Assert.NotNull(payload.Meta.Pagination);
         Assert.Equal(2, payload.Meta.Pagination!.Page);
         Assert.Equal(5, payload.Meta.Pagination.Size);
@@ -65,12 +69,14 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : IClas
         Assert.True(payload!.Success);
         Assert.NotNull(payload.Data);
         Assert.Equal(1, payload.Data!.Total);
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.RequestId));
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
         UserSummaryResponse user = Assert.Single(payload.Data.Users);
         Assert.Equal(targetEmail, user.Email);
     }
 
     private sealed record ApiEnvelope<T>(T Data, ApiMeta Meta, bool Success);
-    private sealed record ApiMeta(string RequestId, ApiPagination? Pagination);
+    private sealed record ApiMeta(string RequestId, string? CorrelationId, ApiPagination? Pagination, string? UserId);
     private sealed record ApiPagination(int Page, int Size, long? Total, string? NextCursor);
     private sealed record ListUsersResponse(List<UserSummaryResponse> Users, int Total);
     private sealed record UserSummaryResponse(string Id, string Email, string FullName, string CreatedAt);

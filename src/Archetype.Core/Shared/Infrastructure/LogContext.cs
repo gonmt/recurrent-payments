@@ -11,20 +11,20 @@ public sealed class LogContext : ILogContext
         public string? UserId { get; set; }
     }
 
-    private static readonly AsyncLocal<ContextHolder?> Holder = new();
+    private static readonly AsyncLocal<ContextHolder?> _holder = new();
 
     private static ContextHolder Current
     {
         get
         {
-            ContextHolder? existing = Holder.Value;
+            ContextHolder? existing = _holder.Value;
             if (existing != null)
             {
                 return existing;
             }
 
             ContextHolder created = new();
-            Holder.Value = created;
+            _holder.Value = created;
             return created;
         }
     }
@@ -60,6 +60,6 @@ public sealed class LogContext : ILogContext
 
     public void Clear()
     {
-        Holder.Value = null;
+        _holder.Value = null;
     }
 }

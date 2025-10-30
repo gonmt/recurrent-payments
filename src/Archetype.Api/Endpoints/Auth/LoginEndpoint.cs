@@ -1,8 +1,13 @@
+using Archetype.Api.Extensions;
 using Archetype.Api.Responses;
 using Archetype.Core.Auth.Application;
+using Archetype.Core.Shared.Domain.Results;
 using Archetype.Core.Users.Application;
 
 using FluentValidation;
+using FluentValidation.Results;
+
+using HttpResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace Archetype.Api.Endpoints.Auth;
 
@@ -10,38 +15,32 @@ public sealed class LoginEndpoint : IApiEndpoint
 {
     public void MapEndpoint(WebApplication app) => _ = app.MapPost("/auth/login", Handle);
 
-    private static async Task<IResult> Handle(
+    private static async Task<HttpResult> Handle(
         [Microsoft.AspNetCore.Mvc.FromBody] LoginRequest request,
-        HttpContext ctx,
         IValidator<LoginRequest> validator,
         AuthenticateUserHandler authenticateUserHandler,
-        GenerateTokenHandler generateTokenHandler)
+        GenerateTokenHandler generateTokenHandler,
+        ApiResponseWriter responses)
     {
-        FluentValidation.Results.ValidationResult validationResult = await validator.ValidateAsync(request);
-
+        ValidationResult validationResult = await validator.ValidateAsync(request);
 
         if (!validationResult.IsValid)
         {
-            IEnumerable<ApiFieldError> fields = validationResult.Errors.Select(error => new ApiFieldError(error.PropertyName, error.ErrorMessage));
-            return ApiResponses.BadRequest(ctx, "Validation error.", fields: fields);
+            return responses.ValidationError(validationResult.Errors);
         }
 
-        try
+        Result<AuthenticateUserResponse> authenticationResult =
+            await authenticateUserHandler.Authenticate(request.Email, request.Password);
+
+        if (authenticationResult.IsError)
         {
-            AuthenticateUserResponse? user = await authenticateUserHandler.Authenticate(request.Email, request.Password);
-
-            if (user is null)
-            {
-                return ApiResponses.Unauthorized(ctx, "Invalid credentials.");
-            }
-
-            GenerateTokenResponse tokenResponse = generateTokenHandler.Generate(user.Id, user.Email, user.FullName);
-
-            return ApiResponses.OkResponse(ctx, new LoginResponse(tokenResponse.Token));
+            return authenticationResult.ToHttpResponse(responses);
         }
-        catch (ArgumentException ex)
-        {
-            return ApiResponses.BadRequest(ctx, ex.Message);
-        }
+
+        AuthenticateUserResponse user = authenticationResult.Value!;
+
+        GenerateTokenResponse tokenResponse = generateTokenHandler.Generate(user.Id, user.Email, user.FullName);
+
+        return responses.Ok(tokenResponse);
     }
 }

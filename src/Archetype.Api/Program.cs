@@ -2,6 +2,7 @@ using Archetype.Api.Endpoints.Auth;
 using Archetype.Api.Endpoints.Shared;
 using Archetype.Api.Extensions;
 using Archetype.Api.Middleware;
+using Archetype.Api.Responses;
 using Archetype.Core.Auth.Domain;
 using Archetype.Core.Auth.Infrastructure;
 using Archetype.Core.Shared.Domain;
@@ -103,6 +104,7 @@ public class Program
         builder.Services.AddDbContext<UsersDbContext>(options => options.UseInMemoryDatabase("ArchetypeUsers"));
         builder.Services.AddScoped<IUserRepository, EfUserRepository>();
         builder.Services.AddScoped<QueryProcessor>();
+        builder.Services.AddScoped<ApiResponseWriter>();
 
         builder.Services.AddArchetypeCore();
         builder.Services.RegisterApiEndpoints();

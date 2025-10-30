@@ -1,3 +1,4 @@
+using Archetype.Core.Shared.Domain.Results;
 using Archetype.Core.Shared.Domain.ValueObjects;
 using Archetype.Core.Tests.Users.TestObjects;
 using Archetype.Core.Users.Application;
@@ -17,10 +18,11 @@ public class GetUserHandlerTests : UsersTestBase
         GetUserHandler handler = new(repository);
 
 
-        GetUserResponse? response = await handler.Find(user.Id.Value);
+        Result<GetUserResponse> result = await handler.Find(user.Id.Value);
 
 
-        Assert.NotNull(response);
+        Assert.True(result.IsSuccess);
+        GetUserResponse response = result.Value!;
         Assert.Equal(user.Id.Value, response.Id);
         Assert.Equal(user.Email.Value, response.Email);
         Assert.Equal(user.FullName.Value, response.FullName);
@@ -34,9 +36,10 @@ public class GetUserHandlerTests : UsersTestBase
         GetUserHandler handler = new(repository);
         Uuid missingId = Uuid.New();
 
-        GetUserResponse? response = await handler.Find(missingId.Value);
+        Result<GetUserResponse> result = await handler.Find(missingId.Value);
 
-        Assert.Null(response);
+        Assert.True(result.IsError);
+        Assert.Equal(ErrorType.NotFound, result.FirstError.Type);
         Assert.Equal(new[] { missingId }, repository.FindCalls);
     }
 
