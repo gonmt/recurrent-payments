@@ -13,11 +13,6 @@ public readonly partial record struct Result<TValue> : IResult<TValue>
 
     private Result(TValue value)
     {
-        if (value is null)
-        {
-            throw new ArgumentNullException(nameof(value));
-        }
-
         _value = value;
     }
 
@@ -28,8 +23,6 @@ public readonly partial record struct Result<TValue> : IResult<TValue>
 
     private Result(List<Error> errors)
     {
-        ArgumentNullException.ThrowIfNull(errors);
-
         if (errors.Count == 0)
         {
             throw new ArgumentException("Cannot create an Result<TValue> from an empty collection of errors. Provide at least one error.", nameof(errors));

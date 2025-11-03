@@ -10,8 +10,6 @@ public static class UsersDbContextSeeder
 {
     public static void Seed(UsersDbContext context, IHasher hasher)
     {
-        _ = context.Database.EnsureCreated();
-
         if (context.Users.Any())
         {
             return;

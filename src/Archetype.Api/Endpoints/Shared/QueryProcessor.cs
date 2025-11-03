@@ -98,19 +98,18 @@ public class QueryProcessor(IHttpContextAccessor httpContextAccessor)
             return null;
         }
 
-        int dashIndex = leftSide.LastIndexOf('-');
-        string field, operatorKey;
+        string field;
+        string operatorKey;
 
-        if (dashIndex == -1)
+        string[] segments = leftSide.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (segments.Length == 0)
         {
-            field = leftSide;
-            operatorKey = "contains";
+            return null;
         }
-        else
-        {
-            field = leftSide.Substring(0, dashIndex);
-            operatorKey = leftSide.Substring(dashIndex + 1);
-        }
+
+        field = segments[0];
+        operatorKey = segments.Length > 1 ? string.Join('-', segments.Skip(1)) : "eq";
 
         if (string.IsNullOrWhiteSpace(field))
         {

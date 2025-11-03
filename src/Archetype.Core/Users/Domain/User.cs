@@ -10,6 +10,16 @@ public sealed class User : AggregateRoot<Uuid>
     private UserPasswordHash _passwordHash;
     public readonly DateTimeOffset CreatedAt;
 
+    /// <summary>
+    /// Constructor para EF Core
+    /// </summary>
+    private User()
+    {
+        Email = null!;
+        FullName = null!;
+        _passwordHash = null!;
+    }
+
     private User(Uuid id, EmailAddress email, UserFullName fullName, UserPasswordHash passwordHash, DateTimeOffset createdAt)
     {
         Id = id;
@@ -30,10 +40,7 @@ public sealed class User : AggregateRoot<Uuid>
         );
     }
 
-    public void ChangePassword(UserPasswordHash newPassword)
-    {
-        _passwordHash = newPassword;
-    }
+    public void ChangePassword(UserPasswordHash newPassword) => _passwordHash = newPassword;
 
     public bool VerifyPassword(string plainPassword, IHasher hasher) => _passwordHash.Verify(plainPassword, hasher);
 }

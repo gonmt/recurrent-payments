@@ -1,233 +1,355 @@
+using System.Collections.Concurrent;
 using System.Globalization;
-using System.Linq.Expressions;
+using System.Linq.Dynamic.Core;
 using System.Reflection;
 
 using Archetype.Core.Shared.Domain.FiltersByCriteria;
 using Archetype.Core.Shared.Domain.ValueObjects;
 
-using DomainCriteria = Archetype.Core.Shared.Domain.FiltersByCriteria.Criteria;
-
-namespace Archetype.Core.Shared.Infrastructure.Persistence.EntityFramework.Criteria;
-
-public static class LinqBuilderByCriteria
+namespace Archetype.Core.Shared.Infrastructure.Persistence.EntityFramework.Criteria
 {
-    public static IQueryable<T> Where<T>(this IQueryable<T> source, DomainCriteria criteria)
+    public static class LinqBuilderByCriteria
     {
-        if (!criteria.HasFilters())
+        public static IQueryable<T> Where<T>(this IQueryable<T> collection, Domain.FiltersByCriteria.Criteria criteria)
         {
-            return source;
-        }
-
-        ParameterExpression parameter = Expression.Parameter(typeof(T), "entity");
-        Expression? accumulated = null;
-
-        foreach (Filter filter in criteria.Filters!.Values)
-        {
-            Expression? filterExpression = BuildFilterExpression(parameter, filter);
-
-            if (filterExpression is null)
+            if (criteria.Filters?.Values.Any() != true)
             {
-                continue;
+                return collection;
             }
 
-            accumulated = accumulated is null
-                ? filterExpression
-                : Expression.AndAlso(accumulated, filterExpression);
+            List<string> queries = [];
+            List<object?> parameters = [];
+
+            foreach (Filter filter in criteria.Filters.Values)
+            {
+                if (TryGetQueryByFilter(typeof(T), filter, parameters, out string query))
+                {
+                    queries.Add(query);
+                }
+            }
+
+            if (queries.Count == 0)
+            {
+                return collection;
+            }
+
+            return collection.Where(string.Join(" && ", queries), parameters.ToArray());
         }
 
-        if (accumulated is null)
+        public static IQueryable<T> OrderBy<T>(this IQueryable<T> collection,
+            Domain.FiltersByCriteria.Criteria criteria)
         {
-            return source;
+            Order? order = criteria.Order;
+
+            if (order?.OrderBy.Value == null || order.OrderType == OrderType.NONE)
+            {
+                return collection;
+            }
+
+            switch (order.OrderType)
+            {
+                case OrderType.ASC:
+                    return collection.OrderBy(order.OrderBy.Value);
+                case OrderType.DESC:
+                    return collection.OrderBy($"{order.OrderBy.Value} DESC");
+            }
+
+            return collection;
         }
 
-        Expression<Func<T, bool>> lambda = Expression.Lambda<Func<T, bool>>(accumulated, parameter);
-        return source.Where(lambda);
-    }
-
-    public static IQueryable<T> OrderBy<T>(this IQueryable<T> source, DomainCriteria criteria)
-    {
-        if (!criteria.HasOrder())
+        public static IQueryable<T> Limit<T>(this IQueryable<T> collection,
+            Domain.FiltersByCriteria.Criteria criteria)
         {
-            return source;
+            if (criteria.Limit == null || criteria.Limit.Value == 0)
+            {
+                return collection;
+            }
+
+            return collection.Take(criteria.Limit.GetValueOrDefault());
         }
 
-        ParameterExpression parameter = Expression.Parameter(typeof(T), "entity");
-        Expression keyAccess = BuildMemberAccess(parameter, criteria.Order!.OrderBy.Value);
-        LambdaExpression keySelector = Expression.Lambda(keyAccess, parameter);
-
-        return criteria.Order.OrderType switch
+        public static IQueryable<T> Offset<T>(this IQueryable<T> collection,
+            Domain.FiltersByCriteria.Criteria criteria)
         {
-            OrderType.ASC => ApplyOrdering(source, nameof(Queryable.OrderBy), keySelector, keyAccess.Type),
-            OrderType.DESC => ApplyOrdering(source, nameof(Queryable.OrderByDescending), keySelector, keyAccess.Type),
-            _ => source
-        };
-    }
+            if (criteria.Offset == null)
+            {
+                return collection;
+            }
 
-    public static IQueryable<T> Limit<T>(this IQueryable<T> source, DomainCriteria criteria)
-    {
-        if (criteria.Limit is null or 0)
-        {
-            return source;
+            return collection.Skip(criteria.Offset.GetValueOrDefault());
         }
 
-        return source.Take(criteria.Limit.Value);
-    }
 
-    public static IQueryable<T> Offset<T>(this IQueryable<T> source, DomainCriteria criteria)
-    {
-        if (criteria.Offset is null or 0)
+        private static bool TryGetQueryByFilter(Type rootType, Filter filter, List<object?> parameters, out string query)
         {
-            return source;
+            ResolvedField resolvedField = GetResolvedField(rootType, filter.Field.Value);
+            string fieldName = resolvedField.Path;
+            Type targetType = resolvedField.FieldType ?? typeof(string);
+
+            Type valueType = filter.Operator is FilterOperator.CONTAINS or FilterOperator.NOTCONTAINS
+                ? typeof(string)
+                : targetType;
+
+            object typedValue = ConvertFilterValue(filter.Value.Value, valueType);
+            int parameterIndex = parameters.Count;
+
+            switch (filter.Operator)
+            {
+                case FilterOperator.EQUAL:
+                    parameters.Add(typedValue);
+                    query = $"{fieldName} == @{parameterIndex}";
+                    return true;
+                case FilterOperator.NOTEQUAL:
+                    parameters.Add(typedValue);
+                    query = $"{fieldName} != @{parameterIndex}";
+                    return true;
+                case FilterOperator.GT:
+                    parameters.Add(typedValue);
+                    query = $"{fieldName} > @{parameterIndex}";
+                    return true;
+                case FilterOperator.GTE:
+                    parameters.Add(typedValue);
+                    query = $"{fieldName} >= @{parameterIndex}";
+                    return true;
+                case FilterOperator.LT:
+                    parameters.Add(typedValue);
+                    query = $"{fieldName} < @{parameterIndex}";
+                    return true;
+                case FilterOperator.LTE:
+                    parameters.Add(typedValue);
+                    query = $"{fieldName} <= @{parameterIndex}";
+                    return true;
+                case FilterOperator.CONTAINS:
+                    parameters.Add(typedValue);
+                    query = $"{fieldName}.Contains(@{parameterIndex})";
+                    return true;
+                case FilterOperator.NOTCONTAINS:
+                    parameters.Add(typedValue);
+                    query = $"!{fieldName}.Contains(@{parameterIndex})";
+                    return true;
+            }
+
+            query = string.Empty;
+            return false;
         }
 
-        return source.Skip(criteria.Offset.Value);
-    }
+        private static readonly ConcurrentDictionary<(Type RootType, string FieldPath), ResolvedField> _fieldPathCache = new();
 
-    private static Expression? BuildFilterExpression(ParameterExpression parameter, Filter filter)
-    {
-        Expression member = BuildMemberAccess(parameter, filter.Field.Value);
-        Type memberType = member.Type;
-        Type targetType = Nullable.GetUnderlyingType(memberType) ?? memberType;
+        private const string ValuePropertyName = nameof(IValueObject<object>.Value);
 
-        return filter.Operator switch
+        private static ResolvedField GetResolvedField(Type rootType, string fieldName)
         {
-            FilterOperator.EQUAL => BuildComparison(member, filter.Value.Value, targetType, Expression.Equal),
-            FilterOperator.NOTEQUAL => BuildComparison(member, filter.Value.Value, targetType, Expression.NotEqual),
-            FilterOperator.GT => BuildComparison(member, filter.Value.Value, targetType, Expression.GreaterThan),
-            FilterOperator.GTE => BuildComparison(member, filter.Value.Value, targetType, Expression.GreaterThanOrEqual),
-            FilterOperator.LT => BuildComparison(member, filter.Value.Value, targetType, Expression.LessThan),
-            FilterOperator.LTE => BuildComparison(member, filter.Value.Value, targetType, Expression.LessThanOrEqual),
-            FilterOperator.CONTAINS => BuildContains(member, filter.Value.Value, positive: true),
-            FilterOperator.NOTCONTAINS => BuildContains(member, filter.Value.Value, positive: false),
-            _ => null
-        };
-    }
+            if (string.IsNullOrWhiteSpace(fieldName))
+            {
+                return new ResolvedField(fieldName, null);
+            }
 
-    private static BinaryExpression? BuildComparison(
-        Expression member,
-        string rawValue,
-        Type targetType,
-        Func<Expression, Expression, BinaryExpression> comparer)
-    {
-        object? converted = ConvertToType(rawValue, targetType);
-
-        if (converted is null)
-        {
-            return null;
+            return _fieldPathCache.GetOrAdd((rootType, fieldName), static key => BuildFieldResolution(key.RootType, key.FieldPath));
         }
 
-        Expression constant = Expression.Constant(converted, targetType);
-
-        if (member.Type != targetType)
+        private static ResolvedField BuildFieldResolution(Type rootType, string fieldName)
         {
-            member = Expression.Convert(member, targetType);
+            string[] segments =
+                fieldName.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (segments.Length == 0)
+            {
+                return new ResolvedField(fieldName, rootType);
+            }
+
+            List<string> resolvedSegments = new(segments.Length * 2);
+            Type? currentType = rootType;
+
+            for (int index = 0; index < segments.Length; index++)
+            {
+                string rawSegment = segments[index];
+
+                if (string.Equals(rawSegment, ValuePropertyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    resolvedSegments.Add(ValuePropertyName);
+                    continue;
+                }
+
+                if (currentType == null)
+                {
+                    resolvedSegments.Add(rawSegment);
+                    continue;
+                }
+
+                MemberInfo? member = GetMemberByName(currentType, rawSegment);
+
+                if (member == null)
+                {
+                    resolvedSegments.Add(rawSegment);
+                    currentType = null;
+                    continue;
+                }
+
+                resolvedSegments.Add(member.Name);
+
+                Type memberType = GetMemberType(member);
+                Type normalizedMemberType = Nullable.GetUnderlyingType(memberType) ?? memberType;
+
+                if (TryGetValueObjectPrimitiveType(normalizedMemberType, out Type? primitiveType))
+                {
+                    bool nextSegmentIsExplicitValue = index + 1 < segments.Length &&
+                                                      string.Equals(segments[index + 1], ValuePropertyName, StringComparison.OrdinalIgnoreCase);
+
+                    if (!nextSegmentIsExplicitValue)
+                    {
+                        resolvedSegments.Add(ValuePropertyName);
+                    }
+
+                    currentType = primitiveType;
+                }
+                else
+                {
+                    currentType = normalizedMemberType;
+                }
+            }
+
+            string resolvedPath = string.Join('.', resolvedSegments);
+            return new ResolvedField(resolvedPath, currentType);
         }
 
-        return comparer(member, constant);
-    }
-
-    private static Expression? BuildContains(Expression member, string rawValue, bool positive)
-    {
-        Expression? stringMember = GetStringAccessor(member);
-
-        if (stringMember is null)
+        private static MemberInfo? GetMemberByName(Type declaringType, string memberName)
         {
-            return null;
+            return declaringType
+                .GetMembers(BindingFlags.Instance | BindingFlags.Public)
+                .FirstOrDefault(m => (m is PropertyInfo || m is FieldInfo) &&
+                                      m.Name.Equals(memberName, StringComparison.OrdinalIgnoreCase));
         }
 
-        MethodInfo contains = typeof(string).GetMethod(nameof(string.Contains), new[] { typeof(string) })!;
-        Expression call = Expression.Call(stringMember, contains, Expression.Constant(rawValue, typeof(string)));
-        return positive ? call : Expression.Not(call);
-    }
-
-    private static Expression? GetStringAccessor(Expression member)
-    {
-        if (member.Type == typeof(string))
+        private static Type GetMemberType(MemberInfo member)
         {
-            return member;
+            return member switch
+            {
+                PropertyInfo property => property.PropertyType,
+                FieldInfo field => field.FieldType,
+                _ => typeof(object)
+            };
         }
 
-        PropertyInfo? valueProperty = member.Type.GetProperty("Value", BindingFlags.Public | BindingFlags.Instance);
-
-        if (valueProperty?.PropertyType == typeof(string))
+        private static bool TryGetValueObjectPrimitiveType(Type type, out Type? primitiveType)
         {
-            return Expression.Property(member, valueProperty);
+            Type? valueObjectInterface = type is { IsInterface: true, IsGenericType: true } &&
+                                         type.GetGenericTypeDefinition() == typeof(IValueObject<>)
+                ? type
+                : type
+                    .GetInterfaces()
+                    .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IValueObject<>));
+
+            if (valueObjectInterface == null)
+            {
+                PropertyInfo? valueProperty =
+                    type.GetProperty(ValuePropertyName, BindingFlags.Instance | BindingFlags.Public);
+                if (valueProperty == null)
+                {
+                    primitiveType = null;
+                    return false;
+                }
+
+                primitiveType = valueProperty.PropertyType;
+                return true;
+            }
+
+            primitiveType = valueObjectInterface.GenericTypeArguments[0];
+            return true;
         }
 
-        MethodInfo? toString = member.Type.GetMethod(nameof(ToString), Type.EmptyTypes);
-        return toString is null ? null : Expression.Call(member, toString);
-    }
-
-    private static Expression BuildMemberAccess(Expression parameter, string path)
-    {
-        string[] parts = path.Split('.', StringSplitOptions.RemoveEmptyEntries);
-        Expression current = parameter;
-
-        foreach (string part in parts)
+        private static object ConvertFilterValue(string rawValue, Type targetType)
         {
-            current = Expression.PropertyOrField(current, part);
+            Type nonNullableType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+            if (nonNullableType == typeof(string))
+            {
+                return rawValue;
+            }
+
+            if (nonNullableType.IsEnum)
+            {
+                return Enum.Parse(nonNullableType, rawValue, ignoreCase: true);
+            }
+
+            if (nonNullableType == typeof(DateTimeOffset))
+            {
+                return DateTimeOffset.Parse(rawValue, CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+            }
+
+            if (nonNullableType == typeof(DateTime))
+            {
+                return DateTime.Parse(rawValue, CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+            }
+
+            if (nonNullableType == typeof(Guid))
+            {
+                return Guid.Parse(rawValue);
+            }
+
+            if (nonNullableType == typeof(bool))
+            {
+                return bool.Parse(rawValue);
+            }
+
+            if (nonNullableType == typeof(decimal))
+            {
+                return decimal.Parse(rawValue, CultureInfo.InvariantCulture);
+            }
+
+            if (nonNullableType == typeof(double))
+            {
+                return double.Parse(rawValue, CultureInfo.InvariantCulture);
+            }
+
+            if (nonNullableType == typeof(float))
+            {
+                return float.Parse(rawValue, CultureInfo.InvariantCulture);
+            }
+
+            if (nonNullableType == typeof(long))
+            {
+                return long.Parse(rawValue, CultureInfo.InvariantCulture);
+            }
+
+            if (nonNullableType == typeof(int))
+            {
+                return int.Parse(rawValue, CultureInfo.InvariantCulture);
+            }
+
+            if (nonNullableType == typeof(short))
+            {
+                return short.Parse(rawValue, CultureInfo.InvariantCulture);
+            }
+
+            if (nonNullableType == typeof(byte))
+            {
+                return byte.Parse(rawValue, CultureInfo.InvariantCulture);
+            }
+
+            if (nonNullableType == typeof(sbyte))
+            {
+                return sbyte.Parse(rawValue, CultureInfo.InvariantCulture);
+            }
+
+            if (nonNullableType == typeof(ushort))
+            {
+                return ushort.Parse(rawValue, CultureInfo.InvariantCulture);
+            }
+
+            if (nonNullableType == typeof(uint))
+            {
+                return uint.Parse(rawValue, CultureInfo.InvariantCulture);
+            }
+
+            if (nonNullableType == typeof(ulong))
+            {
+                return ulong.Parse(rawValue, CultureInfo.InvariantCulture);
+            }
+
+            return Convert.ChangeType(rawValue, nonNullableType, CultureInfo.InvariantCulture);
         }
 
-        return current;
-    }
-
-    private static object? ConvertToType(string rawValue, Type targetType)
-    {
-        Type effectiveType = Nullable.GetUnderlyingType(targetType) ?? targetType;
-
-        if (effectiveType == typeof(string))
-        {
-            return rawValue;
-        }
-
-        if (typeof(StringValueObject).IsAssignableFrom(effectiveType))
-        {
-            return Activator.CreateInstance(effectiveType, rawValue);
-        }
-
-        MethodInfo? fromMethod = effectiveType.GetMethod(
-            "From",
-            BindingFlags.Public | BindingFlags.Static,
-            binder: null,
-            new[] { typeof(string) },
-            modifiers: null);
-
-        if (fromMethod is not null)
-        {
-            return fromMethod.Invoke(null, new object[] { rawValue });
-        }
-
-        if (effectiveType.IsEnum)
-        {
-            return Enum.Parse(effectiveType, rawValue, ignoreCase: true);
-        }
-
-        if (effectiveType == typeof(Guid))
-        {
-            return Guid.Parse(rawValue);
-        }
-
-        if (effectiveType == typeof(DateTimeOffset))
-        {
-            return DateTimeOffset.Parse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-        }
-
-        return Convert.ChangeType(rawValue, effectiveType, CultureInfo.InvariantCulture);
-    }
-
-    private static IQueryable<T> ApplyOrdering<T>(
-        IQueryable<T> source,
-        string methodName,
-        LambdaExpression keySelector,
-        Type keyType)
-    {
-        MethodInfo method = typeof(Queryable)
-            .GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .First(m => m.Name == methodName && m.GetParameters().Length == 2);
-
-        MethodInfo generic = method.MakeGenericMethod(typeof(T), keyType);
-        object? result = generic.Invoke(null, new object[] { source, keySelector });
-
-        return (IQueryable<T>)result!;
+        private sealed record ResolvedField(string Path, Type? FieldType);
     }
 }

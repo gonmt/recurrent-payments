@@ -12,7 +12,14 @@
     <PackageReference Include="Microsoft.IdentityModel.Tokens" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
     <PackageReference Include="System.Linq.Dynamic.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.EntityFrameworkCore">
+      <HintPath>..\..\..\..\.nuget\packages\microsoft.entityframeworkcore\9.0.9\lib\net8.0\Microsoft.EntityFrameworkCore.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

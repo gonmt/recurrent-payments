@@ -15,29 +15,45 @@ public sealed class UsersDbContext(DbContextOptions<UsersDbContext> options) : D
 
         Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<User> user = modelBuilder.Entity<User>();
 
-        _ = user.HasKey(e => e.Id);
+        _ = user.ToTable("users");
+
+        _ = user.HasKey(e => e.Id)
+            .HasName("pk_users");
 
         _ = user.Property(e => e.Id)
             .ValueGeneratedNever()
             .HasConversion(id => id.Value, value => Uuid.From(value))
+            .HasColumnName("id")
             .HasMaxLength(36)
             .IsRequired();
 
-        _ = user.Property(e => e.Email)
-            .HasConversion(email => email.Value, value => new EmailAddress(value))
-            .HasMaxLength(320)
+        user.OwnsOne(u => u.Email, email =>
+        {
+            email.Property(e => e.Value)
+                .HasColumnName("email")
+                .HasMaxLength(320)
+                .IsRequired();
+        });
+        user.Navigation(u => u.Email)
             .IsRequired();
 
-        _ = user.Property(e => e.FullName)
-            .HasConversion(name => name.Value, value => new UserFullName(value))
-            .HasMaxLength(100)
+        user.OwnsOne(u => u.FullName, fullName =>
+        {
+            fullName.Property(f => f.Value)
+                .HasColumnName("full_name")
+                .HasMaxLength(100)
+                .IsRequired();
+        });
+        user.Navigation(u => u.FullName)
             .IsRequired();
 
         _ = user.Property<UserPasswordHash>("_passwordHash")
             .HasConversion(password => password.Value, hashed => UserPasswordHash.FromHash(hashed))
+            .HasColumnName("password_hash")
             .IsRequired();
 
         _ = user.Property(e => e.CreatedAt)
+            .HasColumnName("created_at")
             .IsRequired();
     }
 }

@@ -101,7 +101,22 @@ public class Program
         builder.Services.AddSingleton<ITokenProvider, JwtTokenProvider>();
         builder.Services.AddScoped<IHasher, BCryptHasher>();
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddDbContext<UsersDbContext>(options => options.UseInMemoryDatabase("ArchetypeUsers"));
+        if (builder.Environment.IsEnvironment("Testing"))
+        {
+            builder.Services.AddDbContext<UsersDbContext>(options => options.UseInMemoryDatabase("ArchetypeUsers"));
+        }
+        else
+        {
+            string? connectionString = builder.Configuration.GetConnectionString("UsersDatabase");
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException("Connection string 'UsersDatabase' is not configured.");
+            }
+
+            builder.Services.AddDbContext<UsersDbContext>(options => options.UseNpgsql(
+                connectionString,
+                npgsqlOptions => npgsqlOptions.MigrationsAssembly(typeof(UsersDbContext).Assembly.FullName)));
+        }
         builder.Services.AddScoped<IUserRepository, EfUserRepository>();
         builder.Services.AddScoped<QueryProcessor>();
         builder.Services.AddScoped<ApiResponseWriter>();
@@ -110,6 +125,15 @@ public class Program
         builder.Services.RegisterApiEndpoints();
 
         WebApplication app = builder.Build();
+
+        if (!app.Environment.IsEnvironment("Testing"))
+        {
+            using IServiceScope scope = app.Services.CreateScope();
+            UsersDbContext context = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+            await context.Database.MigrateAsync();
+            IHasher hasher = scope.ServiceProvider.GetRequiredService<IHasher>();
+            UsersDbContextSeeder.Seed(context, hasher);
+        }
 
         app.UseMiddleware<CorrelationContextMiddleware>();
 

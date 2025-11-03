@@ -75,6 +75,48 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : IClas
         Assert.Equal(targetEmail, user.Email);
     }
 
+    [Fact]
+    public async Task ListUsersWithEmailContainsFilterReturnsMatchingUser()
+    {
+        (Core.Users.Domain.User User, string _) userData = await IntegrationTestData.CreateUser(_factory);
+        string targetEmail = userData.User.Email.Value;
+        int partialLength = Math.Max(1, Math.Min(5, targetEmail.Length - 1));
+        string partialEmail = targetEmail[..partialLength];
+
+        string query = $"/users?email-contains={Uri.EscapeDataString(partialEmail)}";
+        HttpResponseMessage response = await _client.GetAsync(query);
+
+        response.EnsureSuccessStatusCode();
+        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>();
+
+        Assert.NotNull(payload);
+        Assert.True(payload!.Success);
+        Assert.NotNull(payload.Data);
+        Assert.True(payload.Data!.Total >= 1);
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.RequestId));
+        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
+        Assert.Contains(payload.Data.Users, user => user.Email == targetEmail);
+    }
+
+    [Fact]
+    public async Task ListUsersWithEmailNotContainsFilterExcludesMatchingUser()
+    {
+        (Core.Users.Domain.User User, string _) userData = await IntegrationTestData.CreateUser(_factory);
+        string targetEmail = userData.User.Email.Value;
+        string partial = targetEmail[..Math.Max(1, Math.Min(5, targetEmail.Length - 1))];
+
+        string query = $"/users?email-not-contains={Uri.EscapeDataString(partial)}";
+        HttpResponseMessage response = await _client.GetAsync(query);
+
+        response.EnsureSuccessStatusCode();
+        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>();
+
+        Assert.NotNull(payload);
+        Assert.True(payload!.Success);
+        Assert.NotNull(payload.Data);
+        Assert.DoesNotContain(payload.Data!.Users, user => user.Email == targetEmail);
+    }
+
     private sealed record ApiEnvelope<T>(T Data, ApiMeta Meta, bool Success);
     private sealed record ApiMeta(string RequestId, string? CorrelationId, ApiPagination? Pagination, string? UserId);
     private sealed record ApiPagination(int Page, int Size, long? Total, string? NextCursor);
