@@ -35,6 +35,20 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 {
                     [ConnectionStringKey] = connectionString
                 });
+            })
+                .ConfigureServices(services =>
+            {
+                ServiceDescriptor? existingDescriptor = services.FirstOrDefault(
+                    d => d.ServiceType == typeof(DbContextOptions<UsersDbContext>));
+
+                if (existingDescriptor != null)
+                {
+                    services.Remove(existingDescriptor);
+                }
+
+                services.AddDbContext<UsersDbContext>(options => options.UseNpgsql(
+                    connectionString,
+                    npgsqlOptions => npgsqlOptions.MigrationsAssembly(typeof(UsersDbContext).Assembly.FullName)));
             });
         }
     }
