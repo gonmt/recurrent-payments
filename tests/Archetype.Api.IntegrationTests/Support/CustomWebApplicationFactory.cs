@@ -12,6 +12,8 @@ namespace Archetype.Api.IntegrationTests.Support;
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private const string ConnectionStringKey = "ConnectionStrings:UsersDatabase";
+    private static readonly object _databaseInitLock = new();
+    private static bool _databaseInitialized;
     private readonly IDisposable _environmentHandle;
 
     internal static bool IsDatabaseConfigured => IntegrationTestEnvironment.IsAvailable;
@@ -27,30 +29,34 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Testing");
 
         string? connectionString = IntegrationTestEnvironment.ConnectionString;
-        if (!string.IsNullOrWhiteSpace(connectionString))
+        if (string.IsNullOrWhiteSpace(connectionString))
         {
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    [ConnectionStringKey] = connectionString
-                });
-            })
-                .ConfigureServices(services =>
-            {
-                ServiceDescriptor? existingDescriptor = services.FirstOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<UsersDbContext>));
-
-                if (existingDescriptor != null)
-                {
-                    services.Remove(existingDescriptor);
-                }
-
-                services.AddDbContext<UsersDbContext>(options => options.UseNpgsql(
-                    connectionString,
-                    npgsqlOptions => npgsqlOptions.MigrationsAssembly(typeof(UsersDbContext).Assembly.FullName)));
-            });
+            return;
         }
+
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [ConnectionStringKey] = connectionString
+            });
+        })
+        .ConfigureServices(services =>
+        {
+            ServiceDescriptor? existingDescriptor = services.FirstOrDefault(
+                d => d.ServiceType == typeof(DbContextOptions<UsersDbContext>));
+
+            if (existingDescriptor != null)
+            {
+                services.Remove(existingDescriptor);
+            }
+
+            services.AddDbContext<UsersDbContext>(options => options.UseNpgsql(
+                connectionString,
+                npgsqlOptions => npgsqlOptions.MigrationsAssembly(typeof(UsersDbContext).Assembly.FullName)));
+        });
+
+        EnsureDatabaseInitialized(connectionString);
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -76,6 +82,30 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         if (disposing)
         {
             _environmentHandle.Dispose();
+        }
+    }
+
+    private static void EnsureDatabaseInitialized(string connectionString)
+    {
+        if (_databaseInitialized)
+        {
+            return;
+        }
+
+        lock (_databaseInitLock)
+        {
+            if (_databaseInitialized)
+            {
+                return;
+            }
+
+            DbContextOptionsBuilder<UsersDbContext> optionsBuilder = new();
+            optionsBuilder.UseNpgsql(connectionString, options => options.MigrationsAssembly(typeof(UsersDbContext).Assembly.FullName));
+
+            using UsersDbContext context = new(optionsBuilder.Options);
+            context.Database.Migrate();
+
+            _databaseInitialized = true;
         }
     }
 }
