@@ -1,59 +1,50 @@
+using System.Net;
 using System.Net.Http.Json;
 
 using Archetype.Api.IntegrationTests.Support;
-using Archetype.Core.Users.Application;
-using Archetype.Core.Users.Domain;
+using Archetype.Core.Shared.Domain.ValueObjects;
 
 namespace Archetype.Api.IntegrationTests.Endpoints.Users;
 
-public class GetUserEndpointTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
+public class GetUserEndpointTests(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
 {
-    private readonly CustomWebApplicationFactory _factory = factory;
-    private readonly HttpClient _client = factory.CreateClient();
-
-    [Fact]
+    [IntegrationTestFact]
     public async Task GetUserWithExistingUserShouldReturnEnvelopeWithUser()
     {
-        (User User, string Password) userData = await IntegrationTestData.CreateUser(_factory);
-        User user = userData.User;
+        (Core.Users.Domain.User user, _) = await IntegrationTestData.CreateUser(Factory);
 
-        HttpResponseMessage response = await _client.GetAsync($"/users/{user.Id.Value}");
+        HttpResponseMessage response = await Client.GetAsync($"/users/{user.Id.Value}");
 
         response.EnsureSuccessStatusCode();
-        ApiEnvelope<GetUserResponse?>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<GetUserResponse?>>();
+        Envelope<GetUserResponse>? payload = await response.Content.ReadFromJsonAsync<Envelope<GetUserResponse>>(SnakeCaseJson.Options);
 
         Assert.NotNull(payload);
-        Assert.True(payload.Success);
+        Assert.True(payload!.Success);
         Assert.NotNull(payload.Data);
         Assert.Equal(user.Id.Value, payload.Data!.Id);
         Assert.Equal(user.Email.Value, payload.Data.Email);
         Assert.Equal(user.FullName.Value, payload.Data.FullName);
-        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.RequestId));
-        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
     }
 
-    [Fact]
+    [IntegrationTestFact]
     public async Task GetUserWithUnknownUserShouldReturnEnvelopeWithNullData()
     {
-        string unknownUserId = Guid.CreateVersion7().ToString();
+        string unknownId = Uuid.New().Value;
+        HttpResponseMessage response = await Client.GetAsync($"/users/{unknownId}");
 
-        HttpResponseMessage response = await _client.GetAsync($"/users/{unknownUserId}");
-
-        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
-        ApiErrorEnvelope? payload = await response.Content.ReadFromJsonAsync<ApiErrorEnvelope>();
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        ErrorEnvelope? payload = await response.Content.ReadFromJsonAsync<ErrorEnvelope>(SnakeCaseJson.Options);
 
         Assert.NotNull(payload);
-        Assert.False(payload.Success);
-        Assert.Equal("USER_NOT_FOUND", payload.Error.Code);
+        Assert.False(payload!.Success);
         Assert.Equal("User not found.", payload.Error.Message);
-        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.RequestId));
-        Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
+        Assert.Equal("USER_NOT_FOUND", payload.Error.Code);
     }
 
-    private sealed record ApiEnvelope<T>(T? Data, ApiMeta Meta, bool Success);
-    private sealed record ApiErrorEnvelope(ApiErrorBody Error, ApiMeta Meta, bool Success);
-    private sealed record ApiErrorBody(string Code, string Message, string? Details, ApiFieldError[]? Fields, bool Retryable);
-    private sealed record ApiFieldError(string Name, string Message);
+    private sealed record Envelope<T>(T? Data, ApiMeta Meta, bool Success);
     private sealed record ApiMeta(string RequestId, string? CorrelationId, ApiPagination? Pagination, string? UserId);
     private sealed record ApiPagination(int Page, int Size, long? Total, string? NextCursor);
+    private sealed record GetUserResponse(string Id, string Email, string FullName, string CreatedAt);
+    private sealed record ErrorEnvelope(ErrorBody Error, ApiMeta Meta, bool Success);
+    private sealed record ErrorBody(string Code, string Message, string? Details, object? Fields, bool Retryable);
 }

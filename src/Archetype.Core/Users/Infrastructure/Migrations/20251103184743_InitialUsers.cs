@@ -1,4 +1,3 @@
-﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -21,10 +20,7 @@ namespace Archetype.Core.Users.Infrastructure.Migrations
                     password_hash = table.Column<string>(type: "text", nullable: false),
                     email = table.Column<string>(type: "character varying(320)", maxLength: 320, nullable: false)
                 },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_users", x => x.id);
-                });
+                constraints: table => table.PrimaryKey("pk_users", x => x.id));
         }
 
         /// <inheritdoc />

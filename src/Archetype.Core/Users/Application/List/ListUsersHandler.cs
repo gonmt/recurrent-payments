@@ -10,7 +10,7 @@ public sealed class ListUsersHandler(IUserRepository userRepository) : IHandler
 {
     public async Task<Result<ListUsersResponse>> Find(List<Dictionary<string, string>> filters, int? limit = null, int? offset = null)
     {
-        Filters? criteriaFilters = Filters.FromValues(filters.Only("email", "fullname", "createdAt"));
+        Filters? criteriaFilters = Filters.FromValues(filters.Only(nameof(User.Email), nameof(User.FullName), nameof(User.CreatedAt)));
 
         Criteria criteria = new(
             criteriaFilters,

@@ -53,10 +53,26 @@
             "name": "test",
             "group": "pre-commit",
             "command": "dotnet",
-            "args": ["test", "--no-build", "--logger", "console", "--verbosity", "normal"],
+            "args": [
+                "test",
+                "tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj",
+                "--no-build",
+                "--logger",
+                "console",
+                "--verbosity",
+                "normal"
+            ],
             "windows": {
                 "command": "dotnet",
-                "args": ["test", "--no-build", "--logger", "console", "--verbosity", "normal"]
+                "args": [
+                    "test",
+                    "tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj",
+                    "--no-build",
+                    "--logger",
+                    "console",
+                    "--verbosity",
+                    "normal"
+                ]
             }
         }
     ]

@@ -4,20 +4,17 @@ using Archetype.Api.IntegrationTests.Support;
 
 namespace Archetype.Api.IntegrationTests.Endpoints.Users;
 
-public class UsersListEndpointTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
+public class UsersListEndpointTests(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
 {
-    private readonly CustomWebApplicationFactory _factory = factory;
-    private readonly HttpClient _client = factory.CreateClient();
-
-    [Fact]
+    [IntegrationTestFact]
     public async Task ListUsersWithoutPaginationReturnsUsers()
     {
-        (Core.Users.Domain.User createdUser, _) = await IntegrationTestData.CreateUser(_factory);
+        (Core.Users.Domain.User createdUser, _) = await IntegrationTestData.CreateUser(Factory);
 
-        HttpResponseMessage response = await _client.GetAsync("/users");
+        HttpResponseMessage response = await Client.GetAsync("/users");
 
         response.EnsureSuccessStatusCode();
-        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>();
+        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>(SnakeCaseJson.Options);
 
         Assert.NotNull(payload);
         Assert.True(payload!.Success);
@@ -30,18 +27,18 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : IClas
         Assert.Null(payload.Meta.Pagination);
     }
 
-    [Fact]
+    [IntegrationTestFact]
     public async Task ListUsersWithPaginationParametersReturnsPaginationMetadata()
     {
         for (int i = 0; i < 6; i++)
         {
-            _ = await IntegrationTestData.CreateUser(_factory);
+            _ = await IntegrationTestData.CreateUser(Factory);
         }
 
-        HttpResponseMessage response = await _client.GetAsync("/users?limit=5&offset=5");
+        HttpResponseMessage response = await Client.GetAsync("/users?limit=5&offset=5");
 
         response.EnsureSuccessStatusCode();
-        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>();
+        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>(SnakeCaseJson.Options);
 
         Assert.NotNull(payload);
         Assert.True(payload!.Success);
@@ -53,17 +50,17 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : IClas
         Assert.True(payload.Data!.Users.Count <= 5);
     }
 
-    [Fact]
+    [IntegrationTestFact]
     public async Task ListUsersWithEmailFilterReturnsMatchingUser()
     {
-        (Core.Users.Domain.User User, string _) userData = await IntegrationTestData.CreateUser(_factory);
+        (Core.Users.Domain.User User, string _) userData = await IntegrationTestData.CreateUser(Factory);
         string targetEmail = userData.User.Email.Value;
 
         string query = $"/users?email-eq={Uri.EscapeDataString(targetEmail)}";
-        HttpResponseMessage response = await _client.GetAsync(query);
+        HttpResponseMessage response = await Client.GetAsync(query);
 
         response.EnsureSuccessStatusCode();
-        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>();
+        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>(SnakeCaseJson.Options);
 
         Assert.NotNull(payload);
         Assert.True(payload!.Success);
@@ -75,19 +72,19 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : IClas
         Assert.Equal(targetEmail, user.Email);
     }
 
-    [Fact]
+    [IntegrationTestFact]
     public async Task ListUsersWithEmailContainsFilterReturnsMatchingUser()
     {
-        (Core.Users.Domain.User User, string _) userData = await IntegrationTestData.CreateUser(_factory);
+        (Core.Users.Domain.User User, string _) userData = await IntegrationTestData.CreateUser(Factory);
         string targetEmail = userData.User.Email.Value;
         int partialLength = Math.Max(1, Math.Min(5, targetEmail.Length - 1));
         string partialEmail = targetEmail[..partialLength];
 
         string query = $"/users?email-contains={Uri.EscapeDataString(partialEmail)}";
-        HttpResponseMessage response = await _client.GetAsync(query);
+        HttpResponseMessage response = await Client.GetAsync(query);
 
         response.EnsureSuccessStatusCode();
-        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>();
+        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>(SnakeCaseJson.Options);
 
         Assert.NotNull(payload);
         Assert.True(payload!.Success);
@@ -98,18 +95,18 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : IClas
         Assert.Contains(payload.Data.Users, user => user.Email == targetEmail);
     }
 
-    [Fact]
+    [IntegrationTestFact]
     public async Task ListUsersWithEmailNotContainsFilterExcludesMatchingUser()
     {
-        (Core.Users.Domain.User User, string _) userData = await IntegrationTestData.CreateUser(_factory);
+        (Core.Users.Domain.User User, string _) userData = await IntegrationTestData.CreateUser(Factory);
         string targetEmail = userData.User.Email.Value;
         string partial = targetEmail[..Math.Max(1, Math.Min(5, targetEmail.Length - 1))];
 
         string query = $"/users?email-not-contains={Uri.EscapeDataString(partial)}";
-        HttpResponseMessage response = await _client.GetAsync(query);
+        HttpResponseMessage response = await Client.GetAsync(query);
 
         response.EnsureSuccessStatusCode();
-        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>();
+        ApiEnvelope<ListUsersResponse>? payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<ListUsersResponse>>(SnakeCaseJson.Options);
 
         Assert.NotNull(payload);
         Assert.True(payload!.Success);

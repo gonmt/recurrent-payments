@@ -1,7 +1,6 @@
 using Archetype.Core.Shared.Domain;
 using Archetype.Core.Shared.Domain.ValueObjects;
 using Archetype.Core.Users.Domain;
-using Archetype.Core.Users.Infrastructure;
 
 using Bogus;
 
@@ -20,8 +19,8 @@ internal static class IntegrationTestData
         string fullName = _faker.Name.FullName();
 
         using IServiceScope scope = factory.Services.CreateScope();
-        UsersDbContext context = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
         IHasher hasher = scope.ServiceProvider.GetRequiredService<IHasher>();
+        IUserRepository repository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
 
         User user = User.Create(
             Uuid.New(),
@@ -29,8 +28,7 @@ internal static class IntegrationTestData
             new UserFullName(fullName),
             UserPasswordHash.Create(password, hasher));
 
-        _ = await context.Set<User>().AddAsync(user);
-        _ = await context.SaveChangesAsync();
+        await repository.Save(user);
 
         return (user, password);
     }

@@ -12,7 +12,7 @@ public class EfUserRepository(UsersDbContext context) : IUserRepository
     public async Task<User?> Find(Uuid id) => await context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
     public async Task<User?> FindByEmail(EmailAddress email) =>
-        await context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        await context.Users.FirstOrDefaultAsync(u => u.Email.Value == email.Value);
 
     public async Task<IEnumerable<User>> Matching(Criteria criteria) =>
         await context.Users.SearchByCriteria(criteria).ToListAsync();

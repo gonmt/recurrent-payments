@@ -6,20 +6,18 @@ using Archetype.Core.Users.Domain;
 
 namespace Archetype.Api.IntegrationTests.Endpoints.Auth;
 
-public class LoginEndpointTests(CustomWebApplicationFactory factory) : IClassFixture<CustomWebApplicationFactory>
+public class LoginEndpointTests(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
 {
-    private readonly HttpClient _client = factory.CreateClient();
-
-    [Fact]
+    [IntegrationTestFact]
     public async Task LoginWithValidCredentialsShouldReturnTokenEnvelope()
     {
-        (User user, string password) = await IntegrationTestData.CreateUser(factory);
+        (User user, string password) = await IntegrationTestData.CreateUser(Factory);
         LoginRequest request = new(user.Email.Value, password);
 
-        HttpResponseMessage response = await _client.PostAsJsonAsync("/auth/login", request);
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/auth/login", request, SnakeCaseJson.Options);
 
         response.EnsureSuccessStatusCode();
-        ApiSuccessEnvelope? payload = await response.Content.ReadFromJsonAsync<ApiSuccessEnvelope>();
+        ApiSuccessEnvelope? payload = await response.Content.ReadFromJsonAsync<ApiSuccessEnvelope>(SnakeCaseJson.Options);
 
         Assert.NotNull(payload);
         Assert.True(payload.Success);
@@ -29,10 +27,10 @@ public class LoginEndpointTests(CustomWebApplicationFactory factory) : IClassFix
         Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
     }
 
-    [Fact]
+    [IntegrationTestFact]
     public async Task LoginWithInvalidPasswordShouldReturnUnauthorizedError()
     {
-        (User user, string password) = await IntegrationTestData.CreateUser(factory);
+        (User user, string password) = await IntegrationTestData.CreateUser(Factory);
         string invalidPassword;
         do
         {
@@ -42,10 +40,10 @@ public class LoginEndpointTests(CustomWebApplicationFactory factory) : IClassFix
 
         LoginRequest request = new(user.Email.Value, invalidPassword);
 
-        HttpResponseMessage response = await _client.PostAsJsonAsync("/auth/login", request);
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/auth/login", request, SnakeCaseJson.Options);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        ApiErrorEnvelope? payload = await response.Content.ReadFromJsonAsync<ApiErrorEnvelope>();
+        ApiErrorEnvelope? payload = await response.Content.ReadFromJsonAsync<ApiErrorEnvelope>(SnakeCaseJson.Options);
 
         Assert.NotNull(payload);
         Assert.False(payload!.Success);
@@ -55,13 +53,13 @@ public class LoginEndpointTests(CustomWebApplicationFactory factory) : IClassFix
         Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
     }
 
-    [Fact]
+    [IntegrationTestFact]
     public async Task LoginWithInvalidPayloadShouldReturnValidationErrors()
     {
-        HttpResponseMessage response = await _client.PostAsJsonAsync("/auth/login", new { Password = "Mono8210!" });
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/auth/login", new { password = "Mono8210!" }, SnakeCaseJson.Options);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        ApiErrorEnvelope? payload = await response.Content.ReadFromJsonAsync<ApiErrorEnvelope>();
+        ApiErrorEnvelope? payload = await response.Content.ReadFromJsonAsync<ApiErrorEnvelope>(SnakeCaseJson.Options);
 
         Assert.NotNull(payload);
         Assert.False(payload!.Success);

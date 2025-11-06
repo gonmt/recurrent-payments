@@ -1,3 +1,5 @@
+using System.Text;
+
 using Microsoft.Extensions.Primitives;
 
 namespace Archetype.Api.Endpoints.Shared;
@@ -43,7 +45,7 @@ public class QueryProcessor(IHttpContextAccessor httpContextAccessor)
         List<Dictionary<string, string>> filters = [];
         HashSet<string> excludedParams = new(StringComparer.OrdinalIgnoreCase)
         {
-            "orderby", "order", "limit", "offset"
+            "order", "limit", "offset", "orderby", "order_by"
         };
 
         Dictionary<string, string> operatorMappings = new(StringComparer.OrdinalIgnoreCase)
@@ -116,6 +118,8 @@ public class QueryProcessor(IHttpContextAccessor httpContextAccessor)
             return null;
         }
 
+        field = ToPascalCase(field);
+
         string operatorValue = operatorMappings.GetValueOrDefault(operatorKey, "CONTAINS");
 
         return new Dictionary<string, string>
@@ -126,7 +130,20 @@ public class QueryProcessor(IHttpContextAccessor httpContextAccessor)
         };
     }
 
-    private string? GetOrderBy() => QueryParams.TryGetValue("orderBy", out StringValues orderByValues) ? orderByValues.FirstOrDefault() : null;
+    private string? GetOrderBy()
+    {
+        if (TryGetQueryValue("order_by", out string? snakeOrderBy) && !string.IsNullOrWhiteSpace(snakeOrderBy))
+        {
+            return ToPascalCase(snakeOrderBy);
+        }
+
+        if (TryGetQueryValue("orderBy", out string? legacyOrderBy) && !string.IsNullOrWhiteSpace(legacyOrderBy))
+        {
+            return ToPascalCase(legacyOrderBy);
+        }
+
+        return null;
+    }
 
     private string? GetOrder() => QueryParams.TryGetValue("order", out StringValues orderValues) ? orderValues.FirstOrDefault() : null;
 
@@ -144,5 +161,49 @@ public class QueryProcessor(IHttpContextAccessor httpContextAccessor)
             int.TryParse(offsetValues.FirstOrDefault(), out int offset)
             ? offset
             : null;
+    }
+
+    private bool TryGetQueryValue(string key, out string? value)
+    {
+        if (QueryParams.TryGetValue(key, out StringValues values))
+        {
+            value = values.FirstOrDefault();
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    private static string ToPascalCase(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        StringBuilder builder = new(value.Length);
+        bool capitalizeNext = true;
+
+        foreach (char c in value)
+        {
+            if (c == '_' || c == '-' || c == ' ')
+            {
+                capitalizeNext = true;
+                continue;
+            }
+
+            if (capitalizeNext)
+            {
+                builder.Append(char.ToUpperInvariant(c));
+                capitalizeNext = false;
+            }
+            else
+            {
+                builder.Append(c);
+            }
+        }
+
+        return builder.ToString();
     }
 }

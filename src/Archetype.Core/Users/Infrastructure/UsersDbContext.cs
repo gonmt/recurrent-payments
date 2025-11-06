@@ -35,7 +35,8 @@ public sealed class UsersDbContext(DbContextOptions<UsersDbContext> options) : D
                 .IsRequired();
         });
         user.Navigation(u => u.Email)
-            .IsRequired();
+            .IsRequired()
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         user.OwnsOne(u => u.FullName, fullName =>
         {
@@ -45,7 +46,8 @@ public sealed class UsersDbContext(DbContextOptions<UsersDbContext> options) : D
                 .IsRequired();
         });
         user.Navigation(u => u.FullName)
-            .IsRequired();
+            .IsRequired()
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         _ = user.Property<UserPasswordHash>("_passwordHash")
             .HasConversion(password => password.Value, hashed => UserPasswordHash.FromHash(hashed))

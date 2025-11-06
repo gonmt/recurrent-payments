@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 using Archetype.Api.Endpoints.Auth;
 using Archetype.Api.Endpoints.Shared;
 using Archetype.Api.Extensions;
@@ -94,29 +96,28 @@ public class Program
             options.DocInclusionPredicate((_, _) => true);
         });
 
-        builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.IncludeFields = true);
+        builder.Services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.IncludeFields = true;
+            options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+            options.SerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.SnakeCaseLower;
+            options.SerializerOptions.PropertyNameCaseInsensitive = true;
+        });
 
         builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
         builder.Services.Configure<JwtTokenOptions>(builder.Configuration.GetSection(JwtTokenOptions.SectionName));
         builder.Services.AddSingleton<ITokenProvider, JwtTokenProvider>();
         builder.Services.AddScoped<IHasher, BCryptHasher>();
         builder.Services.AddHttpContextAccessor();
-        if (builder.Environment.IsEnvironment("Testing"))
+        string? connectionString = builder.Configuration.GetConnectionString("UsersDatabase");
+        if (string.IsNullOrWhiteSpace(connectionString))
         {
-            builder.Services.AddDbContext<UsersDbContext>(options => options.UseInMemoryDatabase("ArchetypeUsers"));
+            throw new InvalidOperationException("Connection string 'UsersDatabase' is not configured.");
         }
-        else
-        {
-            string? connectionString = builder.Configuration.GetConnectionString("UsersDatabase");
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                throw new InvalidOperationException("Connection string 'UsersDatabase' is not configured.");
-            }
 
-            builder.Services.AddDbContext<UsersDbContext>(options => options.UseNpgsql(
-                connectionString,
-                npgsqlOptions => npgsqlOptions.MigrationsAssembly(typeof(UsersDbContext).Assembly.FullName)));
-        }
+        builder.Services.AddDbContext<UsersDbContext>(options => options.UseNpgsql(
+            connectionString,
+            npgsqlOptions => npgsqlOptions.MigrationsAssembly(typeof(UsersDbContext).Assembly.FullName)));
         builder.Services.AddScoped<IUserRepository, EfUserRepository>();
         builder.Services.AddScoped<QueryProcessor>();
         builder.Services.AddScoped<ApiResponseWriter>();
