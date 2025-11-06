@@ -114,3 +114,6 @@ dotnet_naming_style.pascal.capitalization = pascal_case
 
 [src/Payments.Api/Endpoints/**/*Validator.cs]
 dotnet_diagnostic.IDE0058.severity = none
+
+[src/**/Migrations/*.cs]
+dotnet_diagnostic.RCS1043.severity = none
