@@ -15,14 +15,6 @@ jobs:
   quality-checks:
     name: Code Quality
     runs-on: ubuntu-latest
-    container: mcr.microsoft.com/dotnet/sdk:9.0
-    options: --privileged
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-
-    env:
-      DOCKER_HOST: unix:///var/run/docker.sock
-      DOTNET_ROOT: /usr/share/dotnet
 
     steps:
     - name: Checkout code

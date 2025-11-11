@@ -145,7 +145,7 @@ public class ListUsersHandlerTests : UsersTestBase
 
         FakeUserRepository repository = new();
         User user1 = UserMother.RandomWith(email: "john.wick@example.com");
-        User user2 = UserMother.Random();
+        User user2 = UserMother.RandomWith(email: "jane.doe@example.com");
         await repository.Save(user1);
         await repository.Save(user2);
         ListUsersHandler handler = new(repository);
