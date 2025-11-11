@@ -57,9 +57,18 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override IHost CreateHost(IHostBuilder builder)
     {
-        return !IsDatabaseConfigured
-            ? new HostBuilder().Build()
-            : base.CreateHost(builder);
+        if (!IsDatabaseConfigured)
+        {
+            return new HostBuilder().Build();
+        }
+
+        IHost host = base.CreateHost(builder);
+
+        using IServiceScope scope = host.Services.CreateScope();
+        UsersDbContext dbContext = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+        dbContext.Database.EnsureCreated();
+
+        return host;
     }
 
     protected override void Dispose(bool disposing)
