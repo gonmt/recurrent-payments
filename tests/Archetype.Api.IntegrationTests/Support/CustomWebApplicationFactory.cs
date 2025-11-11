@@ -41,6 +41,15 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         })
         .ConfigureServices(services =>
         {
+            // Remove TestingDatabaseMigrationService to avoid conflicts in tests
+            List<ServiceDescriptor> hostedServiceDescriptors = services.Where(
+                d => d.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService) &&
+                d.ImplementationType?.Name == "TestingDatabaseMigrationService").ToList();
+            foreach (ServiceDescriptor? descriptor in hostedServiceDescriptors)
+            {
+                services.Remove(descriptor);
+            }
+
             ServiceDescriptor? existingDescriptor = services.FirstOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<UsersDbContext>));
 

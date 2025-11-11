@@ -15,6 +15,14 @@ jobs:
   quality-checks:
     name: Code Quality
     runs-on: ubuntu-latest
+    container: mcr.microsoft.com/dotnet/sdk:9.0
+    options: --privileged
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    env:
+      DOCKER_HOST: unix:///var/run/docker.sock
+      DOTNET_ROOT: /usr/share/dotnet
 
     steps:
     - name: Checkout code
@@ -48,7 +56,7 @@ jobs:
       run: dotnet tool run roslynator -- analyze ${{ env.SOLUTION_FILE }} --severity-level warning --properties "WarningsAsErrors=true"
 
     - name: Build solution
-      run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
+      run: dotnet build Archetype.sln --no-restore --configuration Release
 
     - name: Run unit tests
       run: |
