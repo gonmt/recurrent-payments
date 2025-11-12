@@ -8,7 +8,7 @@ namespace Archetype.Api.IntegrationTests.Endpoints.Users;
 
 public class GetUserEndpointTests(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
 {
-    [IntegrationTestFact]
+    [Fact]
     public async Task GetUserWithExistingUserShouldReturnEnvelopeWithUser()
     {
         (Core.Users.Domain.User user, _) = await IntegrationTestData.CreateUser(Factory);
@@ -26,7 +26,7 @@ public class GetUserEndpointTests(CustomWebApplicationFactory factory) : Integra
         Assert.Equal(user.FullName.Value, payload.Data.FullName);
     }
 
-    [IntegrationTestFact]
+    [Fact]
     public async Task GetUserWithUnknownUserShouldReturnEnvelopeWithNullData()
     {
         string unknownId = Uuid.New().Value;

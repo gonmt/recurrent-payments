@@ -6,7 +6,7 @@ namespace Archetype.Api.IntegrationTests.Endpoints.Users;
 
 public class UsersListEndpointTests(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
 {
-    [IntegrationTestFact]
+    [Fact]
     public async Task ListUsersWithoutPaginationReturnsUsers()
     {
         (Core.Users.Domain.User createdUser, _) = await IntegrationTestData.CreateUser(Factory);
@@ -27,7 +27,7 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : Integ
         Assert.Null(payload.Meta.Pagination);
     }
 
-    [IntegrationTestFact]
+    [Fact]
     public async Task ListUsersWithPaginationParametersReturnsPaginationMetadata()
     {
         for (int i = 0; i < 6; i++)
@@ -50,7 +50,7 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : Integ
         Assert.True(payload.Data!.Users.Count <= 5);
     }
 
-    [IntegrationTestFact]
+    [Fact]
     public async Task ListUsersWithEmailFilterReturnsMatchingUser()
     {
         (Core.Users.Domain.User User, string _) userData = await IntegrationTestData.CreateUser(Factory);
@@ -72,7 +72,7 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : Integ
         Assert.Equal(targetEmail, user.Email);
     }
 
-    [IntegrationTestFact]
+    [Fact]
     public async Task ListUsersWithEmailContainsFilterReturnsMatchingUser()
     {
         (Core.Users.Domain.User User, string _) userData = await IntegrationTestData.CreateUser(Factory);
@@ -95,7 +95,7 @@ public class UsersListEndpointTests(CustomWebApplicationFactory factory) : Integ
         Assert.Contains(payload.Data.Users, user => user.Email == targetEmail);
     }
 
-    [IntegrationTestFact]
+    [Fact]
     public async Task ListUsersWithEmailNotContainsFilterExcludesMatchingUser()
     {
         (Core.Users.Domain.User User, string _) userData = await IntegrationTestData.CreateUser(Factory);
