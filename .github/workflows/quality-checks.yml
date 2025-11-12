@@ -1,228 +1,255 @@
-name: Quality Checks (Cached Build)
+name: Quality Checks (Safe Optimization)
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+    push:
+        branches: [ main, develop ]
+    pull_request:
+        branches: [ main, develop ]
 
 env:
-  DOTNET_VERSION: '9.0.x'
-  SOLUTION_FILE: 'Archetype.sln'
-  HUSKY: 0
+    DOTNET_VERSION: '9.0.x'
+    SOLUTION_FILE: 'Archetype.sln'
+    HUSKY: 0
 
 jobs:
-  # Job de build compartido
-  build:
-    name: Build & Analyze
-    runs-on: ubuntu-latest
-    outputs:
-      build-cache-key: ${{ steps.cache-key.outputs.key }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    quality-checks:
+        name: Code Quality
+        runs-on: ubuntu-latest
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-    - name: Generate cache key
-      id: cache-key
-      run: |
-        echo "key=build-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.sln') }}" >> $GITHUB_OUTPUT
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Cache NuGet packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.sln') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
+            - name: Cache NuGet packages (better)
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.nuget/packages
+                      ~/.nuget/.dotnet
+                  key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.sln') }}
+                  restore-keys: |
+                      ${{ runner.os }}-nuget-
+                      ${{ runner.os }}-nuget-
 
-    - name: Cache build artifacts
-      uses: actions/cache@v4
-      with:
-        path: |
-          **/bin/Release
-          **/obj/Release
-        key: ${{ steps.cache-key.outputs.key }}
-        restore-keys: |
-          build-
+            - name: Restore dependencies
+              run: dotnet restore ${{ env.SOLUTION_FILE }}
 
-    - name: Restore dependencies
-      run: dotnet restore ${{ env.SOLUTION_FILE }}
+            - name: Restore .NET tools
+              run: dotnet tool restore
 
-    - name: Restore .NET tools
-      run: dotnet tool restore
+            - name: Cache build artifacts
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      **/bin/Release
+                      **/obj/Release
+                  key: ${{ runner.os }}-build-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.sln') }}
+                  restore-keys: |
+                      ${{ runner.os }}-build-
 
-    - name: Verify code format
-      run: dotnet format --verify-no-changes ${{ env.SOLUTION_FILE }}
+            - name: Build solution (using cache)
+              run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
 
-    - name: Roslynator analyze
-      run: dotnet tool run roslynator -- analyze ${{ env.SOLUTION_FILE }} --severity-level warning --properties "WarningsAsErrors=true"
+            - name: Verify code format
+              run: dotnet format --verify-no-changes ${{ env.SOLUTION_FILE }}
 
-    - name: Build solution
-      run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
+            - name: Roslynator analyze
+              run: dotnet tool run roslynator -- analyze ${{ env.SOLUTION_FILE }} --severity-level warning --properties "WarningsAsErrors=true"
 
-  # Tests paralelos usando build cacheado
-  test-matrix:
-    name: Tests (${{ matrix.test-group }})
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test-group: [unit, integration]
-      fail-fast: false
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+            - name: Run tests with better parallelization
+              run: |
+                  # Run unit tests first (faster)
+                  dotnet test tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj \
+                    --no-build \
+                    --configuration Release \
+                    --logger "trx;LogFileName=core_unit_tests.trx" \
+                    --collect:"XPlat Code Coverage" \
+                    --parallel
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+                  # Run architecture tests separately (if unit tests pass)
+                  dotnet test tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj \
+                    --no-build \
+                    --configuration Release \
+                    --filter "Category=Architecture" \
+                    --logger "trx;LogFileName=architecture_tests.trx"
 
-    - name: Cache NuGet packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.sln') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
+                  # Run integration tests
+                  dotnet test tests/Archetype.Api.IntegrationTests/Archetype.Api.IntegrationTests.csproj \
+                    --no-build \
+                    --configuration Release \
+                    --logger "trx;LogFileName=integration_tests.trx" \
+                    --collect:"XPlat Code Coverage"
 
-    - name: Cache build artifacts
-      uses: actions/cache@v4
-      with:
-        path: |
-          **/bin/Release
-          **/obj/Release
-        key: ${{ needs.build.outputs.build-cache-key }}
-        restore-keys: |
-          build-
+            - name: Upload test results
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: test-results
+                  path: |
+                      **/*.trx
+                      **/coverage.cobertura.xml
 
-    - name: Restore dependencies (if cache miss)
-      run: dotnet restore ${{ env.SOLUTION_FILE }}
+            - name: Generate coverage report
+              run: |
+                  dotnet tool run reportgenerator \
+                    -reports:"**/coverage.cobertura.xml" \
+                    -targetdir:"coverage" \
+                    -reporttypes:"Html;Badges;Cobertura;JsonSummary"
 
-    - name: Build (if cache miss)
-      run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
+            - name: Upload coverage report
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-report
+                  path: coverage/
 
-    - name: Run unit tests
-      if: matrix.test-group == 'unit'
-      run: |
-        dotnet test tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj \
-          --no-build \
-          --configuration Release \
-          --logger "trx;LogFileName=unit_tests.trx" \
-          --collect:"XPlat Code Coverage"
+            - name: Run mutation testing (only for PRs and main/develop)
+              if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+              run: |
+                  echo "Running mutation testing..."
+                  if ! dotnet stryker \
+                    --test-project "tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj" \
+                    --project "src/Archetype.Core/Archetype.Core.csproj" \
+                    --mutate "**/Domain/**/*.cs" \
+                    --reporter "html" \
+                    --reporter "json" \
+                    --reporter "cleartext" \
+                    --break-at 0 \
+                    --threshold-low 40 \
+                    --threshold-high 60 \
+                    --verbosity info; then
+                    echo "❌ Stryker failed to execute properly"
+                    exit 1
+                  fi
 
-    - name: Run integration tests
-      if: matrix.test-group == 'integration'
-      run: |
-        dotnet test tests/Archetype.Api.IntegrationTests/Archetype.Api.IntegrationTests.csproj \
-          --no-build \
-          --configuration Release \
-          --logger "trx;LogFileName=integration_tests.trx" \
-          --collect:"XPlat Code Coverage"
+                  if ! find StrykerOutput -name "mutation-report.html" -type f | head -1 | xargs test -f; then
+                    echo "❌ No mutation report was generated"
+                    exit 1
+                  fi
 
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results-${{ matrix.test-group }}
-        path: |
-          **/*.trx
-          **/coverage.cobertura.xml
+            - name: Upload mutation report
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: mutation-report
+                  path: |
+                      StrykerOutput/**/reports/
+                      StrykerOutput/**/*.html
 
-  # Coverage y reports
-  coverage-and-reports:
-    name: Coverage & Reports
-    needs: [build, test-matrix]
-    if: always() && (needs.build.result == 'success' || needs.test-matrix.result == 'success')
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+            - name: Generate quality summary
+              run: |
+                  SUMMARY_FILE="quality-summary.md"
+                  echo "# 📊 Quality Report Summary" > $SUMMARY_FILE
+                  echo "" >> $SUMMARY_FILE
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+                  if [ -f "coverage/Summary.json" ]; then
+                    COVERAGE=$(jq -r '.summary.linecoverage // .summary.lineCoverage // empty' coverage/Summary.json || true)
+                    if [ -n "$COVERAGE" ]; then
+                      echo "## 📈 Code Coverage" >> $SUMMARY_FILE
+                      echo "**Total:** $COVERAGE%" >> $SUMMARY_FILE
+                      echo "" >> $SUMMARY_FILE
+                    fi
+                  fi
 
-    - name: Restore .NET tools
-      run: dotnet tool restore
+                  echo "## 🧪 Test Results" >> $SUMMARY_FILE
+                  echo "**Total Tests:** $(find tests -name "*Test*.cs" -not -path "*bin*" -not -path "*obj*" | wc -l)"
+                  echo "**Status:** ✅ All Passed" >> $SUMMARY_FILE
+                  echo "" >> $SUMMARY_FILE
 
-    - name: Download all test results
-      uses: actions/download-artifact@v4
-      with:
-        pattern: test-results-*
-        merge-multiple: true
+                  echo "## 🧬 Mutation Testing" >> $SUMMARY_FILE
+                  MUTATION_JSON=$(find StrykerOutput -name "mutation-report.json" -path "*/reports/*" -type f | sort | tail -n 1 || true)
+                  if [ -n "$MUTATION_JSON" ] && [ -f "$MUTATION_JSON" ]; then
+                    echo "**Report:** ✅ Generated" >> $SUMMARY_FILE
+                  else
+                    echo "**Report:** ❌ Not found" >> $SUMMARY_FILE
+                  fi
+                  echo "" >> $SUMMARY_FILE
 
-    - name: Generate coverage report
-      run: |
-        dotnet tool run reportgenerator \
-          -reports:"**/coverage.cobertura.xml" \
-          -targetdir:"coverage" \
-          -reporttypes:"Html;Badges;Cobertura;JsonSummary"
+                  echo "## 🛡️ Security" >> $SUMMARY_FILE
+                  echo "**Status:** ⚠️ Not evaluated (placeholder step)" >> $SUMMARY_FILE
 
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report
-        path: coverage/
+            - name: Upload quality summary
+              uses: actions/upload-artifact@v4
+              with:
+                  name: quality-summary
+                  path: quality-summary.md
 
-    - name: Generate quality summary
-      run: |
-        SUMMARY_FILE="quality-summary.md"
-        echo "# 📊 Quality Report Summary" > $SUMMARY_FILE
-        echo "" >> $SUMMARY_FILE
+            - name: Comment on PR
+              if: github.event_name == 'pull_request'
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const fs = require('fs');
 
-        if [ -f "coverage/Summary.json" ]; then
-          COVERAGE=$(jq -r '.summary.linecoverage // .summary.lineCoverage // empty' coverage/Summary.json || true)
-          if [ -n "$COVERAGE" ]; then
-            echo "## 📈 Code Coverage" >> $SUMMARY_FILE
-            echo "**Total:** $COVERAGE%" >> $SUMMARY_FILE
-            echo "" >> $SUMMARY_FILE
-          fi
-        fi
+                      let summary = "## 📊 Quality Check Results\n\n";
 
-        echo "## 🧪 Test Results" >> $SUMMARY_FILE
-        echo "**Status:** ✅ All Passed" >> $SUMMARY_FILE
-        echo "" >> $SUMMARY_FILE
+                      if (fs.existsSync('coverage/Summary.json')) {
+                        const coverageData = JSON.parse(fs.readFileSync('coverage/Summary.json', 'utf8'));
+                        const lineCoverage = coverageData?.summary?.linecoverage ?? coverageData?.summary?.lineCoverage;
+                        if (typeof lineCoverage === 'number') {
+                          summary += `📈 **Coverage:** ${lineCoverage.toFixed(1)}%\n\n`;
+                        }
+                      }
 
-        echo "## 🛡️ Security" >> $SUMMARY_FILE
-        echo "**Status:** ⚠️ Not evaluated" >> $SUMMARY_FILE
+                      summary += `✅ **Tests:** All passed\n`;
 
-    - name: Upload quality summary
-      uses: actions/upload-artifact@v4
-      with:
-        name: quality-summary
-        path: quality-summary.md
+                      const resolveLatestMutationReport = () => {
+                        if (!fs.existsSync('StrykerOutput')) return undefined;
+                        const candidates = [];
+                        const queue = ['StrykerOutput'];
+                        while (queue.length) {
+                          const current = queue.pop();
+                          const entries = fs.readdirSync(current, { withFileTypes: true });
+                          for (const entry of entries) {
+                            const entryPath = path.join(current, entry.name);
+                            if (entry.isDirectory()) queue.push(entryPath);
+                            else if (entry.isFile() && entry.name === 'mutation-report.json') candidates.push(entryPath);
+                          }
+                        }
+                        if (!candidates.length) return undefined;
+                        candidates.sort();
+                        return candidates[candidates.length - 1];
+                      };
 
-    - name: Comment on PR
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
+                      const mutationReportPath = resolveLatestMutationReport();
+                      if (mutationReportPath) {
+                        try {
+                          const mutationData = JSON.parse(fs.readFileSync(mutationReportPath, 'utf8'));
+                          const files = mutationData?.files ?? {};
+                          let killed = 0, survived = 0, noCoverage = 0, total = 0;
+                          for (const file of Object.values(files)) {
+                            for (const mutant of file?.mutants ?? []) {
+                              switch (mutant?.status) {
+                                case 'Killed': killed += 1; total += 1; break;
+                                case 'Survived': survived += 1; total += 1; break;
+                                case 'NoCoverage': noCoverage += 1; total += 1; break;
+                              }
+                            }
+                          }
+                          if (total > 0 || killed > 0 || survived > 0 || noCoverage > 0) {
+                            summary += `🧬 **Mutation:** Killed ${killed}, Survived ${survived}, No coverage ${noCoverage} (Total ${total})\n`;
+                          } else {
+                            summary += `🧬 **Mutation:** ✅ Analysis completed\n`;
+                          }
+                        } catch (error) {
+                          summary += `🧬 **Mutation:** ❌ Unable to read report\n`;
+                        }
+                      } else {
+                        summary += `🧬 **Mutation:** ❌ Report unavailable\n`;
+                      }
 
-          let summary = "## 📊 Quality Check Results\n\n";
+                      summary += `🛡️ **Security:** ⚠️ Not evaluated (placeholder)\n\n`;
+                      summary += `📊 [View detailed reports](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
 
-          if (fs.existsSync('coverage/Summary.json')) {
-            const coverageData = JSON.parse(fs.readFileSync('coverage/Summary.json', 'utf8'));
-            const lineCoverage = coverageData?.summary?.linecoverage ?? coverageData?.summary?.lineCoverage;
-            if (typeof lineCoverage === 'number') {
-              summary += `📈 **Coverage:** ${lineCoverage.toFixed(1)}%\n\n`;
-            }
-          }
-
-          summary += `✅ **Tests:** All passed (parallel with cached build)\n`;
-          summary += `🛡️ **Security:** ⚠️ Not evaluated\n\n`;
-          summary += `📊 [View detailed reports](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
-
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: summary
-          })
+                      github.rest.issues.createComment({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        body: summary
+                      });
