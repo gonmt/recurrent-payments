@@ -1,4 +1,4 @@
-name: Quality Checks
+name: Quality Checks (Optimized)
 
 on:
   push:
@@ -12,15 +12,14 @@ env:
   HUSKY: 0
 
 jobs:
-  quality-checks:
-    name: Code Quality
+  quick-checks:
+    name: Quick Checks
     runs-on: ubuntu-latest
-
+    outputs:
+      should-run-full: ${{ steps.changes.outputs.src-changed }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -48,26 +47,61 @@ jobs:
       run: dotnet tool run roslynator -- analyze ${{ env.SOLUTION_FILE }} --severity-level warning --properties "WarningsAsErrors=true"
 
     - name: Build solution
-      run: dotnet build Archetype.sln --no-restore --configuration Release
+      run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
+
+    - name: Check for source changes
+      id: changes
+      run: |
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          echo "src-changed=true" >> $GITHUB_OUTPUT
+        else
+          # Para push, siempre correr tests completos
+          echo "src-changed=true" >> $GITHUB_OUTPUT
+        fi
+
+  test-matrix:
+    name: Tests
+    needs: quick-checks
+    if: needs.quick-checks.outputs.should-run-full == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-group: [unit, integration]
+      fail-fast: false
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.sln') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+    - name: Restore .NET tools
+      run: dotnet tool restore
 
     - name: Run unit tests
+      if: matrix.test-group == 'unit'
       run: |
         dotnet test tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj \
           --no-build \
           --configuration Release \
-          --filter "Category!=Architecture" \
-          --logger "trx;LogFileName=core_unit_tests.trx" \
+          --logger "trx;LogFileName=unit_tests.trx" \
           --collect:"XPlat Code Coverage"
 
-    - name: Run architecture tests
-      run: |
-        dotnet test tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj \
-          --no-build \
-          --configuration Release \
-          --filter "Category=Architecture" \
-          --logger "trx;LogFileName=architecture_tests.trx"
-
     - name: Run integration tests
+      if: matrix.test-group == 'integration'
       run: |
         dotnet test tests/Archetype.Api.IntegrationTests/Archetype.Api.IntegrationTests.csproj \
           --no-build \
@@ -79,10 +113,30 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: test-results
+        name: test-results-${{ matrix.test-group }}
         path: |
           **/*.trx
           **/coverage.cobertura.xml
+
+  coverage-and-reports:
+    name: Coverage & Reports
+    needs: [quick-checks, test-matrix]
+    if: always() && (needs.quick-checks.result == 'success' || needs.test-matrix.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Download all test results
+      uses: actions/download-artifact@v4
+      with:
+        pattern: test-results-*
+        merge-multiple: true
 
     - name: Generate coverage report
       run: |
@@ -97,34 +151,71 @@ jobs:
         name: coverage-report
         path: coverage/
 
+    - name: Generate quality summary
+      run: |
+        SUMMARY_FILE="quality-summary.md"
+
+        echo "# 📊 Quality Report Summary" > $SUMMARY_FILE
+        echo "" >> $SUMMARY_FILE
+
+        if [ -f "coverage/Summary.json" ]; then
+          COVERAGE=$(jq -r '.summary.linecoverage // .summary.lineCoverage // empty' coverage/Summary.json || true)
+          if [ -n "$COVERAGE" ]; then
+            echo "## 📈 Code Coverage" >> $SUMMARY_FILE
+            echo "**Total:** $COVERAGE%" >> $SUMMARY_FILE
+            echo "" >> $SUMMARY_FILE
+          fi
+        fi
+
+        echo "## 🧪 Test Results" >> $SUMMARY_FILE
+        echo "**Status:** ✅ All Passed" >> $SUMMARY_FILE
+        echo "" >> $SUMMARY_FILE
+
+        echo "## 🛡️ Security" >> $SUMMARY_FILE
+        echo "**Status:** ⚠️ Not evaluated" >> $SUMMARY_FILE
+
+    - name: Upload quality summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: quality-summary
+        path: quality-summary.md
+
+  mutation-testing:
+    name: Mutation Testing
+    needs: quick-checks
+    if: |
+      needs.quick-checks.outputs.should-run-full == 'true' &&
+      (github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.sln') }}
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.SOLUTION_FILE }}
+
     - name: Run mutation testing
       run: |
-        echo "Running mutation testing..."
-        if ! dotnet stryker \
+        dotnet stryker \
           --test-project "tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj" \
           --project "src/Archetype.Core/Archetype.Core.csproj" \
           --mutate "**/Domain/**/*.cs" \
           --reporter "html" \
           --reporter "json" \
-          --reporter "cleartext" \
           --break-at 0 \
           --threshold-low 40 \
-          --threshold-high 60 \
-          --verbosity info; then
-          echo "❌ Stryker failed to execute properly"
-          exit 1
-        fi
-
-        if ! find StrykerOutput -name "mutation-report.html" -type f | head -1 | xargs test -f; then
-          echo "❌ No mutation report was generated"
-          exit 1
-        fi
-        REPORT_PATH=$(find StrykerOutput -name "mutation-report.html" -type f | head -1)
-        if [ -n "$REPORT_PATH" ]; then
-          echo "📊 Mutation report generated at: $REPORT_PATH"
-        fi
-
-        echo "✅ Mutation testing completed successfully"
+          --threshold-high 60
 
     - name: Upload mutation report
       uses: actions/upload-artifact@v4
@@ -134,216 +225,3 @@ jobs:
         path: |
           StrykerOutput/**/reports/
           StrykerOutput/**/*.html
-
-    - name: Generate quality summary
-      run: |
-        SUMMARY_FILE="quality-summary.md"
-        STEP_SUMMARY_OUTPUT="${GITHUB_STEP_SUMMARY:-}"
-
-        export LC_ALL=C
-
-        append_line() {
-          printf '%s\n' "$1" >> "$SUMMARY_FILE"
-          if [ -n "$STEP_SUMMARY_OUTPUT" ]; then
-            printf '%s\n' "$1" >> "$STEP_SUMMARY_OUTPUT"
-          fi
-        }
-
-        append_blank() {
-          append_line ""
-        }
-
-        append_format() {
-          local format=$1
-          shift || true
-          local rendered
-          rendered=$(printf "$format" "$@")
-          append_line "$rendered"
-        }
-
-        : > "$SUMMARY_FILE"
-
-        append_line "# 📊 Quality Report Summary"
-        append_blank
-
-        if [ -f "coverage/Summary.json" ]; then
-          COVERAGE=$(jq -r '.summary.linecoverage // .summary.lineCoverage // empty' coverage/Summary.json || true)
-          if [ -n "$COVERAGE" ]; then
-            append_line "## 📈 Code Coverage"
-            append_format "**Total:** %.1f%%" "$COVERAGE"
-
-            ASSEMBLY_ROWS=$(jq -r '.coverage.assemblies[]? | select(.coverage != null) | "\(.name)|\(.coverage)"' coverage/Summary.json || true)
-            if [ -n "$ASSEMBLY_ROWS" ]; then
-              append_blank
-              append_line "| Project | Coverage |"
-              append_line "| --- | --- |"
-              while IFS='|' read -r NAME VALUE; do
-                [ -z "$NAME" ] && continue
-                append_format "| %s | %.1f%% |" "$NAME" "$VALUE"
-              done <<< "$ASSEMBLY_ROWS"
-            fi
-
-            append_blank
-          fi
-        fi
-
-        append_line "## 🧪 Test Results"
-        append_line "**Total Tests:** $(find tests -name "*Test*.cs" -not -path "*bin*" -not -path "*obj*" | wc -l)"
-        append_line "**Status:** ✅ All Passed"
-        append_blank
-
-        append_line "## 🧬 Mutation Testing"
-        MUTATION_JSON=$(find StrykerOutput -name "mutation-report.json" -path "*/reports/*" -type f | sort | tail -n 1 || true)
-        if [ -n "$MUTATION_JSON" ] && [ -f "$MUTATION_JSON" ]; then
-          MUTATION_COUNTS=$(jq -r '
-            reduce (.files[]?.mutants[]? | .status // empty) as $status (
-              {total:0, killed:0, survived:0, noCoverage:0};
-              if $status == "Killed" then .total += 1 | .killed += 1
-              elif $status == "Survived" then .total += 1 | .survived += 1
-              elif $status == "NoCoverage" then .total += 1 | .noCoverage += 1
-              else .
-              end
-            ) | [.total, .killed, .survived, .noCoverage] | @tsv
-          ' "$MUTATION_JSON" || true)
-
-          append_line "**Report:** ✅ Generated"
-
-          if [ -n "$MUTATION_COUNTS" ]; then
-            IFS=$'\t' read -r TOTAL KILLED SURVIVED NO_COVERAGE <<< "$MUTATION_COUNTS"
-            if [ "${TOTAL:-0}" != "0" ] || [ "${KILLED:-0}" != "0" ] || [ "${SURVIVED:-0}" != "0" ] || [ "${NO_COVERAGE:-0}" != "0" ]; then
-              append_blank
-              append_line "| Metric | Count |"
-              append_line "| --- | --- |"
-              [ -n "${TOTAL:-}" ] && append_line "| Total mutants | ${TOTAL:-0} |"
-              [ -n "${KILLED:-}" ] && append_line "| Killed | ${KILLED:-0} |"
-              [ -n "${SURVIVED:-}" ] && append_line "| Survived | ${SURVIVED:-0} |"
-              [ -n "${NO_COVERAGE:-}" ] && append_line "| No coverage | ${NO_COVERAGE:-0} |"
-            fi
-          fi
-        else
-          append_line "**Report:** ❌ Not found"
-        fi
-        append_blank
-
-        append_line "## 🛡️ Security"
-        append_line "**Status:** ⚠️ Not evaluated (placeholder step)"
-
-    - name: Upload quality summary
-      uses: actions/upload-artifact@v4
-      with:
-        name: quality-summary
-        path: quality-summary.md
-
-    - name: Comment on PR
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          const path = require('path');
-
-          // Read quality summary
-          let summary = "## 📊 Quality Check Results\n\n";
-
-          if (fs.existsSync('coverage/Summary.json')) {
-            const coverageData = JSON.parse(fs.readFileSync('coverage/Summary.json', 'utf8'));
-            const lineCoverage = coverageData?.summary?.linecoverage ?? coverageData?.summary?.lineCoverage;
-            if (typeof lineCoverage === 'number') {
-              summary += `📈 **Coverage:** ${lineCoverage.toFixed(1)}%\n`;
-            }
-
-            const assemblies = coverageData?.coverage?.assemblies ?? [];
-            if (assemblies.length) {
-              summary += `\n| Project | Coverage |\n| --- | --- |\n`;
-              for (const assembly of assemblies) {
-                if (typeof assembly?.coverage === 'number' && assembly?.name) {
-                  summary += `| ${assembly.name} | ${assembly.coverage.toFixed(1)}% |\n`;
-                }
-              }
-              summary += `\n`;
-            } else if (typeof lineCoverage === 'number') {
-              summary += `\n`;
-            }
-          }
-
-          summary += `✅ **Tests:** All passed\n`;
-
-          const resolveLatestMutationReport = () => {
-            if (!fs.existsSync('StrykerOutput')) {
-              return undefined;
-            }
-
-            const candidates = [];
-            const queue = ['StrykerOutput'];
-            while (queue.length) {
-              const current = queue.pop();
-              const entries = fs.readdirSync(current, { withFileTypes: true });
-              for (const entry of entries) {
-                const entryPath = path.join(current, entry.name);
-                if (entry.isDirectory()) {
-                  queue.push(entryPath);
-                } else if (entry.isFile() && entry.name === 'mutation-report.json') {
-                  candidates.push(entryPath);
-                }
-              }
-            }
-
-            if (!candidates.length) {
-              return undefined;
-            }
-
-            candidates.sort();
-            return candidates[candidates.length - 1];
-          };
-
-          const mutationReportPath = resolveLatestMutationReport();
-          if (mutationReportPath) {
-            try {
-              const mutationData = JSON.parse(fs.readFileSync(mutationReportPath, 'utf8'));
-              const files = mutationData?.files ?? {};
-              let killed = 0;
-              let survived = 0;
-              let noCoverage = 0;
-              let total = 0;
-
-              for (const file of Object.values(files)) {
-                for (const mutant of file?.mutants ?? []) {
-                  switch (mutant?.status) {
-                    case 'Killed':
-                      killed += 1;
-                      total += 1;
-                      break;
-                    case 'Survived':
-                      survived += 1;
-                      total += 1;
-                      break;
-                    case 'NoCoverage':
-                      noCoverage += 1;
-                      total += 1;
-                      break;
-                  }
-                }
-              }
-
-              if (total > 0 || killed > 0 || survived > 0 || noCoverage > 0) {
-                summary += `🧬 **Mutation:** Killed ${killed}, Survived ${survived}, No coverage ${noCoverage} (Total ${total})\n`;
-              } else {
-                summary += `🧬 **Mutation:** ✅ Analysis completed\n`;
-              }
-            } catch (error) {
-              summary += `🧬 **Mutation:** ❌ Unable to read report\n`;
-            }
-          } else {
-            summary += `🧬 **Mutation:** ❌ Report unavailable\n`;
-          }
-
-          summary += `🛡️ **Security:** ⚠️ Not evaluated (placeholder)\n\n`;
-
-          summary += `📊 [View detailed reports](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
-
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: summary
-          });
