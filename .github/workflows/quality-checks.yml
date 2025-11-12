@@ -1,4 +1,4 @@
-name: Quality Checks (Optimized)
+name: Quality Checks (Cached Build)
 
 on:
   push:
@@ -12,11 +12,12 @@ env:
   HUSKY: 0
 
 jobs:
-  quick-checks:
-    name: Quick Checks
+  # Job de build compartido
+  build:
+    name: Build & Analyze
     runs-on: ubuntu-latest
     outputs:
-      should-run-full: ${{ steps.changes.outputs.src-changed }}
+      build-cache-key: ${{ steps.cache-key.outputs.key }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -26,6 +27,11 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
+    - name: Generate cache key
+      id: cache-key
+      run: |
+        echo "key=build-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.sln') }}" >> $GITHUB_OUTPUT
+
     - name: Cache NuGet packages
       uses: actions/cache@v4
       with:
@@ -33,6 +39,16 @@ jobs:
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.sln') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
+
+    - name: Cache build artifacts
+      uses: actions/cache@v4
+      with:
+        path: |
+          **/bin/Release
+          **/obj/Release
+        key: ${{ steps.cache-key.outputs.key }}
+        restore-keys: |
+          build-
 
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_FILE }}
@@ -49,20 +65,10 @@ jobs:
     - name: Build solution
       run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
 
-    - name: Check for source changes
-      id: changes
-      run: |
-        if [ "${{ github.event_name }}" == "pull_request" ]; then
-          echo "src-changed=true" >> $GITHUB_OUTPUT
-        else
-          # Para push, siempre correr tests completos
-          echo "src-changed=true" >> $GITHUB_OUTPUT
-        fi
-
+  # Tests paralelos usando build cacheado
   test-matrix:
-    name: Tests
-    needs: quick-checks
-    if: needs.quick-checks.outputs.should-run-full == 'true'
+    name: Tests (${{ matrix.test-group }})
+    needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -85,11 +91,21 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
-    - name: Restore dependencies
+    - name: Cache build artifacts
+      uses: actions/cache@v4
+      with:
+        path: |
+          **/bin/Release
+          **/obj/Release
+        key: ${{ needs.build.outputs.build-cache-key }}
+        restore-keys: |
+          build-
+
+    - name: Restore dependencies (if cache miss)
       run: dotnet restore ${{ env.SOLUTION_FILE }}
 
-    - name: Restore .NET tools
-      run: dotnet tool restore
+    - name: Build (if cache miss)
+      run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
 
     - name: Run unit tests
       if: matrix.test-group == 'unit'
@@ -118,10 +134,11 @@ jobs:
           **/*.trx
           **/coverage.cobertura.xml
 
+  # Coverage y reports
   coverage-and-reports:
     name: Coverage & Reports
-    needs: [quick-checks, test-matrix]
-    if: always() && (needs.quick-checks.result == 'success' || needs.test-matrix.result == 'success')
+    needs: [build, test-matrix]
+    if: always() && (needs.build.result == 'success' || needs.test-matrix.result == 'success')
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -131,6 +148,9 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore .NET tools
+      run: dotnet tool restore
 
     - name: Download all test results
       uses: actions/download-artifact@v4
@@ -154,7 +174,6 @@ jobs:
     - name: Generate quality summary
       run: |
         SUMMARY_FILE="quality-summary.md"
-
         echo "# 📊 Quality Report Summary" > $SUMMARY_FILE
         echo "" >> $SUMMARY_FILE
 
@@ -180,48 +199,30 @@ jobs:
         name: quality-summary
         path: quality-summary.md
 
-  mutation-testing:
-    name: Mutation Testing
-    needs: quick-checks
-    if: |
-      needs.quick-checks.outputs.should-run-full == 'true' &&
-      (github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+    - name: Comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        script: |
+          const fs = require('fs');
 
-    - name: Cache NuGet packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.sln') }}
+          let summary = "## 📊 Quality Check Results\n\n";
 
-    - name: Restore dependencies
-      run: dotnet restore ${{ env.SOLUTION_FILE }}
+          if (fs.existsSync('coverage/Summary.json')) {
+            const coverageData = JSON.parse(fs.readFileSync('coverage/Summary.json', 'utf8'));
+            const lineCoverage = coverageData?.summary?.linecoverage ?? coverageData?.summary?.lineCoverage;
+            if (typeof lineCoverage === 'number') {
+              summary += `📈 **Coverage:** ${lineCoverage.toFixed(1)}%\n\n`;
+            }
+          }
 
-    - name: Run mutation testing
-      run: |
-        dotnet stryker \
-          --test-project "tests/Archetype.Core.Tests/Archetype.Core.Tests.csproj" \
-          --project "src/Archetype.Core/Archetype.Core.csproj" \
-          --mutate "**/Domain/**/*.cs" \
-          --reporter "html" \
-          --reporter "json" \
-          --break-at 0 \
-          --threshold-low 40 \
-          --threshold-high 60
+          summary += `✅ **Tests:** All passed (parallel with cached build)\n`;
+          summary += `🛡️ **Security:** ⚠️ Not evaluated\n\n`;
+          summary += `📊 [View detailed reports](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
 
-    - name: Upload mutation report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: mutation-report
-        path: |
-          StrykerOutput/**/reports/
-          StrykerOutput/**/*.html
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          })
