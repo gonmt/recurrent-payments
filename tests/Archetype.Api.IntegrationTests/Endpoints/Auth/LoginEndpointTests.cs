@@ -8,7 +8,7 @@ namespace Archetype.Api.IntegrationTests.Endpoints.Auth;
 
 public class LoginEndpointTests(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
 {
-    [IntegrationTestFact]
+    [Fact]
     public async Task LoginWithValidCredentialsShouldReturnTokenEnvelope()
     {
         (User user, string password) = await IntegrationTestData.CreateUser(Factory);
@@ -27,7 +27,7 @@ public class LoginEndpointTests(CustomWebApplicationFactory factory) : Integrati
         Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
     }
 
-    [IntegrationTestFact]
+    [Fact]
     public async Task LoginWithInvalidPasswordShouldReturnUnauthorizedError()
     {
         (User user, string password) = await IntegrationTestData.CreateUser(Factory);
@@ -53,7 +53,7 @@ public class LoginEndpointTests(CustomWebApplicationFactory factory) : Integrati
         Assert.False(string.IsNullOrWhiteSpace(payload.Meta.CorrelationId));
     }
 
-    [IntegrationTestFact]
+    [Fact]
     public async Task LoginWithInvalidPayloadShouldReturnValidationErrors()
     {
         HttpResponseMessage response = await Client.PostAsJsonAsync("/auth/login", new { password = "Mono8210!" }, SnakeCaseJson.Options);

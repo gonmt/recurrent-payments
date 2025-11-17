@@ -48,7 +48,7 @@ jobs:
       run: dotnet tool run roslynator -- analyze ${{ env.SOLUTION_FILE }} --severity-level warning --properties "WarningsAsErrors=true"
 
     - name: Build solution
-      run: dotnet build Archetype.sln --no-restore --configuration Release
+      run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
 
     - name: Run unit tests
       run: |
